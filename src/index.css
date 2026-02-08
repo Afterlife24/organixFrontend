@@ -1,0 +1,335 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-gray-200;
+  }
+  
+  body {
+    @apply bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 text-gray-900 font-sans;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    min-height: 100vh;
+  }
+  
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-blue-500/30 transform hover:-translate-y-0.5;
+  }
+  
+  .btn-secondary {
+    @apply bg-white hover:bg-gray-50 text-gray-700 font-semibold py-3 px-6 rounded-xl border border-gray-200 shadow-md hover:shadow-lg transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-gray-500/20 transform hover:-translate-y-0.5;
+  }
+  
+  .btn-danger {
+    @apply bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white font-semibold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-red-500/30 transform hover:-translate-y-0.5;
+  }
+  
+  .input-field {
+    @apply w-full px-4 py-3 border border-gray-200 rounded-xl bg-white/80 backdrop-blur-sm focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-300 shadow-sm hover:shadow-md;
+  }
+  
+  .card {
+    @apply bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1;
+  }
+  
+  .sidebar-item {
+    @apply flex items-center px-4 py-3 text-gray-700 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 hover:text-blue-700 rounded-xl transition-all duration-300 cursor-pointer;
+  }
+  
+  .sidebar-item.active {
+    @apply bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-700 font-semibold shadow-md;
+  }
+  
+  .glass-card {
+    @apply bg-white/70 backdrop-blur-lg rounded-2xl shadow-xl border border-white/30;
+  }
+  
+  .gradient-text {
+    @apply bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent;
+  }
+  
+  .floating-card {
+    @apply bg-white/90 backdrop-blur-md rounded-2xl shadow-2xl border border-white/40 transform transition-all duration-500 hover:scale-105;
+  }
+  
+  .premium-button {
+    @apply relative overflow-hidden bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 text-white font-bold py-4 px-8 rounded-2xl shadow-2xl transition-all duration-300 transform hover:scale-105 hover:shadow-purple-500/25;
+  }
+  
+  .premium-button::before {
+    content: '';
+    @apply absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 transition-opacity duration-300;
+  }
+  
+  .premium-button:hover::before {
+    @apply opacity-100;
+  }
+  
+  .mobile-nav {
+    @apply fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-lg border-t border-gray-200/50 shadow-2xl z-50 md:hidden;
+  }
+  
+  .mobile-nav-item {
+    @apply flex flex-col items-center justify-center py-2 px-1 text-gray-600 hover:text-blue-600 transition-colors duration-200;
+  }
+  
+  .mobile-nav-item.active {
+    @apply text-blue-600;
+  }
+}
+
+/* Premium Animations */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.3); }
+  50% { box-shadow: 0 0 30px rgba(59, 130, 246, 0.5); }
+}
+
+@keyframes gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient-shift 3s ease infinite;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-gray-100 rounded-full;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gradient-to-b from-blue-400 to-indigo-500 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply from-blue-500 to-indigo-600;
+}
+
+/* React DatePicker custom styles */
+.react-datepicker-wrapper {
+  width: 100%;
+}
+
+.react-datepicker__input-container input {
+  @apply input-field;
+}
+
+.react-datepicker {
+  @apply glass-card border-0 shadow-2xl;
+}
+
+.react-datepicker__header {
+  @apply bg-gradient-to-r from-blue-500 to-indigo-500 text-white border-0 rounded-t-2xl;
+}
+
+.react-datepicker__day--selected {
+  @apply bg-gradient-to-r from-blue-500 to-indigo-500 text-white;
+}
+
+.react-datepicker__day:hover {
+  @apply bg-blue-100;
+}
+
+/* Mobile Responsive Breakpoints */
+@media (max-width: 768px) {
+  .card {
+    @apply p-4 rounded-xl;
+  }
+  
+  .btn-primary, .btn-secondary, .btn-danger {
+    @apply py-2.5 px-4 text-sm;
+  }
+  
+  .input-field {
+    @apply py-2.5 px-3 text-sm;
+  }
+}
+
+/* Tablet Responsive */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .sidebar-item {
+    @apply px-3 py-2.5;
+  }
+}
+
+/* Premium Loading Spinner */
+.premium-spinner {
+  @apply w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin;
+}
+
+/* Glass morphism effects */
+.glass-morphism {
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+/* Premium shadows */
+.shadow-premium {
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+.shadow-premium-lg {
+  box-shadow: 0 35px 60px -12px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+  /* Calendar specific styles */
+  .calendar-day {
+    @apply relative transition-all duration-200 hover:scale-105;
+  }
+  
+  .calendar-day-today {
+    @apply bg-gradient-to-br from-blue-100 to-blue-200 text-blue-800 font-bold ring-2 ring-blue-300 shadow-md;
+  }
+  
+  .calendar-day-selected {
+    @apply bg-gradient-to-br from-primary-600 to-primary-700 text-white font-bold shadow-lg transform scale-105;
+  }
+  
+  .calendar-day-other-month {
+    @apply text-gray-300 hover:text-gray-400;
+  }
+  
+  .calendar-day-current-month {
+    @apply text-gray-900 hover:bg-blue-50 hover:text-blue-700;
+  }
+  
+  .task-indicator {
+    @apply absolute bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-green-500 rounded-full opacity-60;
+  }
+  
+  .calendar-grid {
+    @apply grid grid-cols-7 gap-1 bg-gray-50 p-2 rounded-lg;
+  }
+  
+  .calendar-header {
+    @apply h-10 flex items-center justify-center text-sm font-semibold text-gray-600 bg-gray-100 border-b border-gray-200;
+  }
+  
+  /* Task section scrollbar */
+  .tasks-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 #f8fafc;
+  }
+  
+  .tasks-scroll::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  .tasks-scroll::-webkit-scrollbar-track {
+    @apply bg-gray-50 rounded-full;
+  }
+  
+  .tasks-scroll::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 rounded-full hover:bg-gray-400;
+    border: 2px solid #f8fafc;
+  }
+  
+  .tasks-scroll::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-500;
+  }
+  
+  /* Task card hover effects */
+  .task-card-hover {
+    @apply transition-all duration-200 hover:shadow-md hover:-translate-y-0.5;
+  }
+  
+  /* Modal backdrop */
+  .modal-backdrop {
+    backdrop-filter: blur(4px);
+    animation: fadeIn 0.2s ease-out;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  
+  /* Modal slide in */
+  .modal-content {
+    animation: slideIn 0.3s ease-out;
+  }
+  
+  @keyframes slideIn {
+    from { 
+      opacity: 0;
+      transform: translateY(-20px) scale(0.95);
+    }
+    to { 
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+  /* Compact task card styles */
+  .task-title-compact {
+    line-height: 1.3;
+    word-break: break-word;
+    hyphens: auto;
+  }
+  
+  .task-card-compact {
+    @apply shadow-sm hover:shadow-md;
+  }
+  
+  .task-card-compact .floating-card {
+    @apply border border-gray-100;
+  }
+  
+  /* Better text wrapping for long task names */
+  .task-title-wrap {
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    word-break: break-word;
+    hyphens: auto;
+  }
+  /* Compact task cards for better space utilization */
+  .floating-card-compact {
+    @apply bg-white/90 backdrop-blur-sm rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200;
+    padding: 0.75rem 1rem;
+  }
+  
+  .task-list-compact {
+    gap: 0.75rem;
+  }
+  
+  .task-list-compact .floating-card {
+    @apply shadow-sm border-gray-100;
+    padding: 0.75rem 1rem;
+  }
+  
+  /* Reduce margins in task content */
+  .task-content-compact .task-header {
+    margin-bottom: 0.5rem;
+  }
+  
+  .task-content-compact .task-progress {
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
