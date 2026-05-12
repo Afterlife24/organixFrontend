@@ -12,9 +12,6 @@ const Tasks = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const completedTasks = staticTasks.filter(task => task.completed);
-  const incompleteTasks = staticTasks.filter(task => !task.completed);
-
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -22,6 +19,9 @@ const Tasks = () => {
       </div>
     );
   }
+
+  const completedTasks = (staticTasks || []).filter(task => task.completed);
+  const incompleteTasks = (staticTasks || []).filter(task => !task.completed);
 
   return (
     <div className="max-w-4xl mx-auto">
