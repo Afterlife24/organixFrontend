@@ -51,6 +51,7 @@ export const useConfirm = () => {
     setConfirmState(prev => ({ ...prev, isOpen: false, isLoading: false }));
   }, []);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const handleConfirm = useCallback(async () => {
     if (confirmState.onConfirm) {
       await confirmState.onConfirm();

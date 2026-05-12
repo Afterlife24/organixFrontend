@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Trash2, Edit3, Save, X, MessageSquare } from 'lucide-react';
 import { useTask } from '../context/TaskContext';
-import toast from 'react-hot-toast';
 import ConfirmModal from './ConfirmModal';
 import { useConfirm } from '../hooks/useConfirm';
 

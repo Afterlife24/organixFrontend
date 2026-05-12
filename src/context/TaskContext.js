@@ -25,6 +25,16 @@ const taskReducer = (state, action) => {
     case 'SET_TASK_INSTANCES':
       return { ...state, taskInstances: action.payload, isLoading: false };
     
+    case 'SWAP_TASK_INSTANCES':
+      const { taskId: swapTaskId, direction: swapDirection } = action.payload;
+      const instances = [...state.taskInstances];
+      const currentIdx = instances.findIndex(i => i.taskId._id === swapTaskId || i.taskId === swapTaskId);
+      if (currentIdx === -1) return state;
+      const targetIdx = swapDirection === 'up' ? currentIdx - 1 : currentIdx + 1;
+      if (targetIdx < 0 || targetIdx >= instances.length) return state;
+      [instances[currentIdx], instances[targetIdx]] = [instances[targetIdx], instances[currentIdx]];
+      return { ...state, taskInstances: instances };
+    
     case 'UPDATE_TASK_INSTANCE':
       return {
         ...state,
@@ -274,16 +284,14 @@ export const TaskProvider = ({ children }) => {
       
       // If the task has dates, refresh the current selected date's task instances
       if (taskData.startDate && taskData.endDate) {
-        const taskDate = getLocalDateString(new Date(taskData.startDate));
-        const currentSelectedDate = state.selectedDate;
+        const taskDate = typeof taskData.startDate === 'string' && taskData.startDate.length === 10
+          ? taskData.startDate
+          : getLocalDateString(new Date(taskData.startDate));
         
-        // Only refresh if the new task's date matches the currently selected date
-        if (taskDate === currentSelectedDate) {
-          // Refresh task instances for the current date
-          setTimeout(() => {
-            fetchTaskInstancesForDate(currentSelectedDate);
-          }, 100);
-        }
+        // Always refresh task instances for the task's date
+        setTimeout(() => {
+          fetchTaskInstancesForDate(taskDate);
+        }, 100);
       }
       
       toast.success('Task created successfully');
@@ -293,7 +301,7 @@ export const TaskProvider = ({ children }) => {
       toast.error(message);
       return { success: false, message };
     }
-  }, [state.selectedDate, fetchTaskInstancesForDate]);
+  }, [fetchTaskInstancesForDate]);
 
   // Update task
   const updateTask = async (taskId, updates) => {
@@ -311,26 +319,21 @@ export const TaskProvider = ({ children }) => {
 
   // Update task order
   const updateTaskOrder = useCallback(async (taskId, direction) => {
+    // Optimistic swap — instantly reorder in the UI
+    dispatch({ type: 'SWAP_TASK_INSTANCES', payload: { taskId, direction } });
+    
     try {
       await taskAPI.updateTaskOrder(taskId, direction);
-      
-      // Refresh the appropriate task list
-      const currentSelectedDate = state.selectedDate;
-      if (currentSelectedDate) {
-        // Refresh task instances for calendar
-        fetchTaskInstancesForDate(currentSelectedDate);
-      }
-      // Also refresh static tasks
-      fetchStaticTasks();
-      
-      toast.success(`Task moved ${direction}`);
       return { success: true };
     } catch (error) {
+      // Revert on failure by swapping back
+      const reverseDirection = direction === 'up' ? 'down' : 'up';
+      dispatch({ type: 'SWAP_TASK_INSTANCES', payload: { taskId, direction: reverseDirection } });
       const message = error.response?.data?.message || 'Failed to update task order';
       toast.error(message);
       return { success: false, message };
     }
-  }, [state.selectedDate, fetchTaskInstancesForDate, fetchStaticTasks]);
+  }, []);
 
   // Delete task
   const deleteTask = async (taskId) => {

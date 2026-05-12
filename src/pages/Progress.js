@@ -80,6 +80,8 @@ const Progress = () => {
   }, [selectedUser, selectedDate]);
 
   // Fetch task counts for calendar dates (only for today and future)
+  const calendarDays = generateCalendarDays(currentMonth);
+
   useEffect(() => {
     if (!selectedUser) {
       setDateCounts({});
@@ -116,6 +118,7 @@ const Progress = () => {
     };
 
     fetchDateCounts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedUser, currentMonth]);
 
   // Navigate months
@@ -125,20 +128,12 @@ const Progress = () => {
     setCurrentMonth(newMonth);
   };
 
-  // Go to current month
-  const goToCurrentMonth = () => {
-    const today = new Date();
-    setCurrentMonth(today);
-    setSelectedDate(today);
-  };
-
   // Handle date click
   const handleDateClick = (date) => {
     setSelectedDate(date);
   };
 
   // Generate calendar days
-  const calendarDays = generateCalendarDays(currentMonth);
   const weekDays = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 
   // Filter users by search
@@ -152,10 +147,6 @@ const Progress = () => {
   // Filter tasks
   const completedTasks = taskInstances.filter(instance => instance.completed);
   const incompleteTasks = taskInstances.filter(instance => !instance.completed);
-
-  // Check if current month is today's month
-  const isCurrentMonth = currentMonth.getMonth() === new Date().getMonth() && 
-                         currentMonth.getFullYear() === new Date().getFullYear();
 
   if (!user?.isAdmin) {
     return (

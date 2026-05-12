@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTask } from '../context/TaskContext';
+import { taskInstanceAPI } from '../services/api';
 import TaskInstanceCard from '../components/TaskInstanceCard';
 import LoadingSpinner from '../components/LoadingSpinner';
 import CreateTaskModal from '../components/CreateTaskModal';
@@ -22,51 +23,21 @@ const Calendar = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [monthTaskCounts, setMonthTaskCounts] = useState({});
 
-  // Fetch task counts for today and future dates progressively
+  // Fetch task count for today only (carry-forward means today shows all pending)
   useEffect(() => {
-    const fetchMonthTaskCounts = async () => {
-      const calendarDays = generateCalendarDays(currentMonth);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      
-      // Only fetch for days in the current month that are today or in the future
-      const daysToFetch = calendarDays.filter(date => {
-        const dateToCheck = new Date(date);
-        dateToCheck.setHours(0, 0, 0, 0);
-        return isInCurrentMonth(date, currentMonth) && dateToCheck >= today;
-      });
-      
-      // Sort by date (today first, then future dates)
-      daysToFetch.sort((a, b) => a - b);
-      
-      // Fetch counts progressively and update state immediately
-      for (const date of daysToFetch) {
-        const dateString = getLocalDateString(date);
-        try {
-          const response = await fetch(`/api/task-instances/date/${dateString}`, {
-            headers: {
-              'Authorization': `Bearer ${localStorage.getItem('token')}`
-            }
-          });
-          if (response.ok) {
-            const data = await response.json();
-            const pendingCount = data.taskInstances.filter(t => !t.completed).length;
-            
-            // Update state immediately for each date
-            setMonthTaskCounts(prev => ({
-              ...prev,
-              [dateString]: pendingCount
-            }));
-          }
-        } catch (error) {
-          console.error(`Error fetching tasks for ${dateString}:`, error);
-        }
+    const fetchTodayTaskCount = async () => {
+      const todayString = getLocalDateString(new Date());
+      try {
+        const response = await taskInstanceAPI.getInstancesForDate(todayString);
+        const pendingCount = response.data.taskInstances.filter(t => !t.completed).length;
+        setMonthTaskCounts({ [todayString]: pendingCount });
+      } catch (error) {
+        console.error('Error fetching today task count:', error);
       }
     };
 
-    // Reset counts when month changes
     setMonthTaskCounts({});
-    fetchMonthTaskCounts();
+    fetchTodayTaskCount();
   }, [currentMonth]);
 
   // Fetch tasks for the selected date
@@ -259,10 +230,6 @@ const Calendar = () => {
               <div className="flex items-center space-x-2">
                 <div className="w-3 h-3 bg-primary-600 rounded"></div>
                 <span>Selected</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <div className="w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center text-[8px] font-bold">3</div>
-                <span>Pending tasks</span>
               </div>
             </div>
           </div>

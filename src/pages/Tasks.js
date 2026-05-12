@@ -9,16 +9,8 @@ const Tasks = () => {
 
   useEffect(() => {
     fetchStaticTasks();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const formatDate = (date) => {
-    return new Date(date).toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  };
 
   const completedTasks = staticTasks.filter(task => task.completed);
   const incompleteTasks = staticTasks.filter(task => !task.completed);

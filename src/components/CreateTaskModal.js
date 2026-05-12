@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, Calendar, Plus, AlertCircle } from 'lucide-react';
 import { useTask } from '../context/TaskContext';
-import { formatDate } from '../utils/dateUtils';
+import { formatDate, getLocalDateString } from '../utils/dateUtils';
 import LoadingSpinner from './LoadingSpinner';
 
 const CreateTaskModal = ({ isOpen, onClose, selectedDate }) => {
@@ -55,8 +55,9 @@ const CreateTaskModal = ({ isOpen, onClose, selectedDate }) => {
 
     // Add dates if it's a date-based task
     if (formData.isDateBased && selectedDate) {
-      taskData.startDate = selectedDate.toISOString();
-      taskData.endDate = selectedDate.toISOString();
+      const dateStr = getLocalDateString(selectedDate);
+      taskData.startDate = dateStr;
+      taskData.endDate = dateStr;
     }
 
     const result = await createTask(taskData);
