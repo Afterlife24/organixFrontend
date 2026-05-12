@@ -50,7 +50,7 @@ const Calendar = () => {
   // Update count for selected date when tasks change
   useEffect(() => {
     const dateString = getLocalDateString(selectedDate);
-    const pendingCount = taskInstances.filter(t => !t.completed).length;
+    const pendingCount = (taskInstances || []).filter(t => !t.completed).length;
     
     // Update the count for the selected date
     setMonthTaskCounts(prev => ({
@@ -83,8 +83,8 @@ const Calendar = () => {
   const weekDays = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 
   // Filter tasks
-  const completedTasks = taskInstances.filter(instance => instance.completed);
-  const incompleteTasks = taskInstances.filter(instance => !instance.completed);
+  const completedTasks = (taskInstances || []).filter(instance => instance.completed);
+  const incompleteTasks = (taskInstances || []).filter(instance => !instance.completed);
 
   // Check if current month is today's month
   const isCurrentMonth = currentMonth.getMonth() === new Date().getMonth() && 
@@ -280,7 +280,7 @@ const Calendar = () => {
                 <div className="flex items-center justify-center py-12">
                   <LoadingSpinner size="medium" />
                 </div>
-              ) : taskInstances.length > 0 ? (
+              ) : (taskInstances || []).length > 0 ? (
                 <div className="h-full overflow-y-auto tasks-scroll">
                   <div className="p-4 space-y-4">
                     {/* Active Tasks */}

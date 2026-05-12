@@ -6,6 +6,8 @@ const TaskInstanceCardReadOnly = ({ taskInstance, showDateRange = true, compact 
   const [isExpanded, setIsExpanded] = useState(true);
 
   const task = taskInstance.taskId;
+
+  if (!task) return null;
   const completedSubtasks = taskInstance.subtaskInstances?.filter(si => si.completed).length || 0;
   const totalSubtasks = taskInstance.subtaskInstances?.length || 0;
   const progressPercentage = totalSubtasks > 0 ? (completedSubtasks / totalSubtasks) * 100 : 0;

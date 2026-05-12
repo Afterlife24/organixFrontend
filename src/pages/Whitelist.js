@@ -23,7 +23,7 @@ const Whitelist = () => {
     try {
       setIsLoading(true);
       const response = await adminAPI.getWhitelist();
-      setWhitelistedEmails(response.data.whitelistedEmails);
+      setWhitelistedEmails(response.data.whitelistedEmails || []);
     } catch (error) {
       console.error('Error fetching whitelist:', error);
       toast.error('Failed to load whitelist');

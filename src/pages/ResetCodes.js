@@ -23,7 +23,7 @@ const ResetCodes = () => {
     try {
       setIsLoading(true);
       const response = await adminAPI.getResetCodes();
-      setResetCodes(response.data.resetCodes);
+      setResetCodes(response.data.resetCodes || []);
     } catch (error) {
       console.error('Error fetching reset codes:', error);
       toast.error('Failed to load reset codes');

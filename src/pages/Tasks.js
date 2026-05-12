@@ -43,7 +43,7 @@ const Tasks = () => {
         <p className="text-gray-600 text-sm">Static tasks that can be completed anytime</p>
         
         {/* Stats */}
-        {staticTasks.length > 0 && (
+        {(staticTasks || []).length > 0 && (
           <div className="mt-3 flex items-center space-x-6 text-sm">
             <div className="flex items-center space-x-2">
               <div className="w-2 h-2 bg-primary-600 rounded-full"></div>
@@ -95,7 +95,7 @@ const Tasks = () => {
         )}
 
         {/* Empty State */}
-        {staticTasks.length === 0 && (
+        {(staticTasks || []).length === 0 && (
           <div className="text-center py-8">
             <CheckSquare className="mx-auto text-gray-300 mb-4" size={48} />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No tasks yet</h3>

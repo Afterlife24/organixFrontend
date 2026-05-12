@@ -60,10 +60,10 @@ const Progress = () => {
         setIsLoading(true);
         const dateString = getLocalDateString(selectedDate);
         const response = await adminAPI.getUserTasks(selectedUser, dateString);
-        setTaskInstances(response.data.taskInstances);
+        setTaskInstances(response.data.taskInstances || []);
         
         // Update the count for this date
-        const pendingCount = response.data.taskInstances.filter(t => !t.completed).length;
+        const pendingCount = (response.data.taskInstances || []).filter(t => !t.completed).length;
         setDateCounts(prev => ({
           ...prev,
           [dateString]: pendingCount
@@ -103,7 +103,7 @@ const Progress = () => {
         const dateString = getLocalDateString(date);
         try {
           const response = await adminAPI.getUserTasks(selectedUser, dateString);
-          const pendingCount = response.data.taskInstances.filter(t => !t.completed).length;
+          const pendingCount = (response.data.taskInstances || []).filter(t => !t.completed).length;
           
           if (pendingCount > 0) {
             setDateCounts(prev => ({
@@ -145,8 +145,8 @@ const Progress = () => {
   const selectedUserData = users.find(u => u._id === selectedUser);
 
   // Filter tasks
-  const completedTasks = taskInstances.filter(instance => instance.completed);
-  const incompleteTasks = taskInstances.filter(instance => !instance.completed);
+  const completedTasks = (taskInstances || []).filter(instance => instance.completed);
+  const incompleteTasks = (taskInstances || []).filter(instance => !instance.completed);
 
   if (!user?.isAdmin) {
     return (
@@ -362,7 +362,7 @@ const Progress = () => {
                   <div className="flex items-center justify-center py-12">
                     <LoadingSpinner size="medium" />
                   </div>
-                ) : taskInstances.length > 0 ? (
+                ) : (taskInstances || []).length > 0 ? (
                   <div className="h-full overflow-y-auto tasks-scroll">
                     <div className="p-4 space-y-4">
                       {/* Active Tasks */}

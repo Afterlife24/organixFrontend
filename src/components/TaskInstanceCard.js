@@ -19,6 +19,8 @@ const TaskInstanceCard = ({ taskInstance, showDateRange = true, compact = false 
 
   const task = taskInstance.taskId;
 
+  if (!task) return null;
+
   const handleTaskToggle = async () => {
     setIsUpdating(true);
     const wasCompleted = taskInstance.completed;

@@ -20,14 +20,6 @@ const Today = () => {
     });
   };
 
-  const completedTasks = todayTasks.filter(task => task.completed);
-  const incompleteTasks = todayTasks.filter(task => !task.completed);
-
-  const totalSubtasks = todayTasks.reduce((acc, task) => acc + (task.subtasks?.length || 0), 0);
-  const completedSubtasks = todayTasks.reduce((acc, task) => 
-    acc + (task.subtasks?.filter(subtask => subtask.completed).length || 0), 0
-  );
-
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -35,6 +27,15 @@ const Today = () => {
       </div>
     );
   }
+
+  const safeTodayTasks = todayTasks || [];
+  const completedTasks = safeTodayTasks.filter(task => task.completed);
+  const incompleteTasks = safeTodayTasks.filter(task => !task.completed);
+
+  const totalSubtasks = safeTodayTasks.reduce((acc, task) => acc + (task.subtasks?.length || 0), 0);
+  const completedSubtasks = safeTodayTasks.reduce((acc, task) => 
+    acc + (task.subtasks?.filter(subtask => subtask.completed).length || 0), 0
+  );
 
   return (
     <div className="space-y-6 md:space-y-8">
@@ -66,7 +67,7 @@ const Today = () => {
         </div>
         
         {/* Stats Cards */}
-        {todayTasks.length > 0 && (
+        {safeTodayTasks.length > 0 && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
             <div className="glass-card p-4 text-center">
               <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-xl flex items-center justify-center mx-auto mb-2">
@@ -148,7 +149,7 @@ const Today = () => {
         )}
 
         {/* Empty State */}
-        {todayTasks.length === 0 && (
+        {safeTodayTasks.length === 0 && (
           <div className="text-center py-16 md:py-20">
             <div className="w-24 h-24 bg-gradient-to-r from-gray-100 to-gray-200 rounded-3xl flex items-center justify-center mx-auto mb-6 animate-float">
               <Calendar className="text-gray-400" size={40} />
