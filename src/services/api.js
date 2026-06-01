@@ -67,6 +67,7 @@ export const subtaskAPI = {
 // Task Instance API
 export const taskInstanceAPI = {
   getInstancesForDate: (date) => api.get(`/task-instances/date/${date}`),
+  getMonthCounts: (year, month) => api.get(`/task-instances/month-counts/${year}/${month}`),
   toggleTaskComplete: (instanceId) => api.put(`/task-instances/${instanceId}/complete`),
   toggleSubtaskComplete: (instanceId, subtaskId) => api.put(`/task-instances/${instanceId}/subtask/${subtaskId}`),
 };

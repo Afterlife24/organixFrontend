@@ -23,42 +23,23 @@ const Calendar = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [monthTaskCounts, setMonthTaskCounts] = useState({});
 
-  // Fetch task count for today only (carry-forward means today shows all pending)
-  // Fetch task counts for all dates in current month
-useEffect(() => {
-
-  const fetchMonthTaskCounts = async () => {
-    try {
-
-      const counts = {};
-
-      // Get all calendar days
-      const days = generateCalendarDays(currentMonth);
-
-      for (const date of days) {
-
-        const dateString = getLocalDateString(date);
-
-        const response = await taskInstanceAPI.getInstancesForDate(dateString);
-
-        const pendingCount =
-          response.data.taskInstances.filter(
-            task => !task.completed
-          ).length;
-
-        counts[dateString] = pendingCount;
+  // Fetch task counts for all dates in current month (single API call)
+  useEffect(() => {
+    const fetchMonthCounts = async () => {
+      const year = currentMonth.getFullYear();
+      const month = currentMonth.getMonth() + 1;
+      try {
+        const response = await taskInstanceAPI.getMonthCounts(year, month);
+        setMonthTaskCounts(response.data.counts || {});
+      } catch (error) {
+        console.error('Error fetching month task counts:', error);
+        setMonthTaskCounts({});
       }
+    };
 
-      setMonthTaskCounts(counts);
-
-    } catch (error) {
-      console.error('Error fetching month task counts:', error);
-    }
-  };
-
-  fetchMonthTaskCounts();
-
-}, [currentMonth]);
+    setMonthTaskCounts({});
+    fetchMonthCounts();
+  }, [currentMonth]);
 
   // Fetch tasks for the selected date
   useEffect(() => {
