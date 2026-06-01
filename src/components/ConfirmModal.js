@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { AlertTriangle, X, Trash2, CheckCircle } from 'lucide-react';
 
 const ConfirmModal = ({ 
@@ -12,7 +13,7 @@ const ConfirmModal = ({
   type = "danger", // danger, warning, info
   isLoading = false 
 }) => {
-  if (!isOpen) return null;
+  if (!isOpen || typeof document === 'undefined') return null;
 
   const getTypeStyles = () => {
     switch (type) {
@@ -43,16 +44,16 @@ const ConfirmModal = ({
   const typeStyles = getTypeStyles();
   const Icon = typeStyles.icon;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+  return createPortal(
+    <div className="fixed inset-0 z-[99999] flex items-start justify-center pt-20">
       {/* Backdrop */}
       <div 
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-fade-in"
+        className="absolute inset-0 bg-black/20 backdrop-blur-sm animate-fade-in"
         onClick={onClose}
       />
       
       {/* Modal */}
-      <div className="relative bg-white/95 backdrop-blur-lg rounded-2xl shadow-2xl border border-white/20 max-w-md w-full mx-4 animate-slide-up">
+      <div className="relative bg-white/95 backdrop-blur-lg rounded-2xl shadow-2xl border border-white/20 max-w-sm w-full mx-4 animate-slide-up">
         {/* Close Button */}
         <button
           onClick={onClose}
@@ -106,7 +107,8 @@ const ConfirmModal = ({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
