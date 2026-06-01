@@ -27,6 +27,7 @@ const Progress = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingUsers, setIsLoadingUsers] = useState(true);
   const [dateCounts, setDateCounts] = useState({});
+  const [dateStatus, setDateStatus] = useState({}); // 'green' or 'red' per date
 
   // Fetch all users
   useEffect(() => {
@@ -88,36 +89,19 @@ const Progress = () => {
       return;
     }
 
-    const fetchDateCounts = async () => {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      
-      const futureDates = calendarDays.filter(date => {
-        const dateOnly = new Date(date);
-        dateOnly.setHours(0, 0, 0, 0);
-        return dateOnly >= today && isInCurrentMonth(date, currentMonth);
-      });
-
-      // Fetch counts progressively
-      for (const date of futureDates) {
-        const dateString = getLocalDateString(date);
-        try {
-          const response = await adminAPI.getUserTasks(selectedUser, dateString);
-          const pendingCount = (response.data.taskInstances || []).filter(t => !t.completed).length;
-          
-          if (pendingCount > 0) {
-            setDateCounts(prev => ({
-              ...prev,
-              [dateString]: pendingCount
-            }));
-          }
-        } catch (error) {
-          console.error(`Error fetching count for ${dateString}:`, error);
-        }
+    const fetchMonthStatus = async () => {
+      const year = currentMonth.getFullYear();
+      const month = currentMonth.getMonth() + 1;
+      try {
+        const response = await adminAPI.getUserMonthStatus(selectedUser, year, month);
+        setDateStatus(response.data.status || {});
+      } catch (error) {
+        console.error('Error fetching month status:', error);
+        setDateStatus({});
       }
     };
 
-    fetchDateCounts();
+    fetchMonthStatus();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedUser, currentMonth]);
 
@@ -274,7 +258,7 @@ const Progress = () => {
                   const isTodayDate = isToday(date);
                   const isSelected = isSameDay(date, selectedDate);
                   const dateString = getLocalDateString(date);
-                  const pendingCount = dateCounts[dateString] || 0;
+                  const dayStatus = dateStatus[dateString]; // 'green', 'red', or undefined
                   
                   return (
                     <button
@@ -298,15 +282,18 @@ const Progress = () => {
                           ? 'bg-gradient-to-br from-blue-600 to-blue-700 text-white font-bold ring-2 ring-blue-400 shadow-lg transform scale-105' 
                           : ''
                         }
+                        ${!isSelected && !isTodayDate && dayStatus === 'green'
+                          ? 'bg-green-100 border-2 border-green-300 text-green-800'
+                          : ''
+                        }
+                        ${!isSelected && !isTodayDate && dayStatus === 'red'
+                          ? 'bg-red-100 border-2 border-red-300 text-red-800'
+                          : ''
+                        }
                       `}
                       title={formatDate(date)}
                     >
                       {date.getDate()}
-                      {pendingCount > 0 && (
-                        <span className="absolute top-0.5 right-0.5 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-sm">
-                          {pendingCount > 9 ? '9+' : pendingCount}
-                        </span>
-                      )}
                     </button>
                   );
                 })}
@@ -315,8 +302,12 @@ const Progress = () => {
               {/* Legend */}
               <div className="mt-6 flex items-center justify-center space-x-6 text-sm text-gray-500">
                 <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 bg-blue-100 border-2 border-blue-200 rounded"></div>
-                  <span>Today</span>
+                  <div className="w-3 h-3 bg-green-100 border-2 border-green-300 rounded"></div>
+                  <span>Completed</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 bg-red-100 border-2 border-red-300 rounded"></div>
+                  <span>Missed</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <div className="w-3 h-3 bg-primary-600 rounded"></div>

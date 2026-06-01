@@ -85,6 +85,7 @@ export const adminAPI = {
   generateResetCode: (email) => api.post('/admin/reset-codes', { email }),
   deleteResetCode: (id) => api.delete(`/admin/reset-codes/${id}`),
   getUserTasks: (userId, date) => api.get(`/admin/user-tasks/${userId}/date/${date}`),
+  getUserMonthStatus: (userId, year, month) => api.get(`/admin/user-tasks/${userId}/month-status/${year}/${month}`),
 };
 
 export default api;
