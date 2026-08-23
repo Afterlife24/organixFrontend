@@ -15,6 +15,7 @@ import Whitelist from './pages/Whitelist';
 import ResetCodes from './pages/ResetCodes';
 import ForgotPassword from './pages/ForgotPassword';
 import Progress from './pages/Progress';
+import DailyLog from './pages/DailyLog';
 
 function App() {
   return (
@@ -65,6 +66,7 @@ function App() {
                 <Route path="whitelist" element={<Whitelist />} />
                 <Route path="reset-codes" element={<ResetCodes />} />
                 <Route path="progress" element={<Progress />} />
+                <Route path="daily-log" element={<DailyLog />} />
               </Route>
               
               <Route path="*" element={<Navigate to="/" replace />} />

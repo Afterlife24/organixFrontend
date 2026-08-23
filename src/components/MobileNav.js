@@ -1,68 +1,25 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { CheckSquare, Calendar, Plus, Users, Shield, Key, BarChart3 } from 'lucide-react';
+import { CheckSquare, Calendar, ClipboardList, Users, BarChart3 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const MobileNav = () => {
   const { user } = useAuth();
 
-  const navItems = [
-    {
-      to: '/tasks',
-      icon: CheckSquare,
-      label: 'Tasks'
-    },
-    {
-      to: '/calendar',
-      icon: Calendar,
-      label: 'Calendar'
-    }
-  ];
-
-  // Add Create Task for admin users only
-  if (user?.isAdmin) {
-    navItems.push({
-      to: '/create-task',
-      icon: Plus,
-      label: 'Create'
-    });
-  }
-
-  // Add People for admin users only
-  if (user?.isAdmin) {
-    navItems.push({
-      to: '/people',
-      icon: Users,
-      label: 'People'
-    });
-  }
-
-  // Add Whitelist for admin users only
-  if (user?.isAdmin) {
-    navItems.push({
-      to: '/whitelist',
-      icon: Shield,
-      label: 'Whitelist'
-    });
-  }
-
-  // Add Reset Codes for admin users only
-  if (user?.isAdmin) {
-    navItems.push({
-      to: '/reset-codes',
-      icon: Key,
-      label: 'Reset'
-    });
-  }
-
-  // Add Progress for admin users only
-  if (user?.isAdmin) {
-    navItems.push({
-      to: '/progress',
-      icon: BarChart3,
-      label: 'Progress'
-    });
-  }
+  // Non-admin: Tasks + Calendar only
+  // Admin: Tasks, Log, Calendar, People, Progress — exactly 5, always fits
+  const navItems = user?.isAdmin
+    ? [
+        { to: '/tasks',     icon: CheckSquare,  label: 'Tasks'    },
+        { to: '/daily-log', icon: ClipboardList, label: 'Log'      },
+        { to: '/calendar',  icon: Calendar,      label: 'Calendar' },
+        { to: '/people',    icon: Users,         label: 'People'   },
+        { to: '/progress',  icon: BarChart3,     label: 'Progress' },
+      ]
+    : [
+        { to: '/tasks',    icon: CheckSquare, label: 'Tasks'    },
+        { to: '/calendar', icon: Calendar,    label: 'Calendar' },
+      ];
 
   return (
     <nav className="mobile-nav">

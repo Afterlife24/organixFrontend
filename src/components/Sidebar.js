@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Calendar, Plus, CheckSquare, X, Sparkles, TrendingUp, Users, Shield, Key, BarChart3 } from 'lucide-react';
+import { Calendar, Plus, CheckSquare, X, Sparkles, TrendingUp, Users, Shield, Key, BarChart3, ClipboardList } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const Sidebar = ({ onClose }) => {
@@ -75,6 +75,17 @@ const Sidebar = ({ onClose }) => {
       label: 'Progress',
       description: 'Monitor users',
       color: 'from-cyan-500 to-blue-500'
+    });
+  }
+
+  // Add Daily Log tab for admin users
+  if (user?.isAdmin) {
+    navItems.push({
+      to: '/daily-log',
+      icon: ClipboardList,
+      label: 'Daily Log',
+      description: 'Field activity notes',
+      color: 'from-violet-500 to-purple-600'
     });
   }
 

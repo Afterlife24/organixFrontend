@@ -88,4 +88,16 @@ export const adminAPI = {
   getUserMonthStatus: (userId, year, month) => api.get(`/admin/user-tasks/${userId}/month-status/${year}/${month}`),
 };
 
+// Daily Log API (admin only)
+export const dailyLogAPI = {
+  getLog: (date) => api.get(`/daily-log/${date}`),
+  getTeamLogs: (date) => api.get(`/daily-log/team/${date}`),
+  updateStation: (date, station) => api.patch(`/daily-log/${date}/station`, { station }),
+  updateNotes: (date, notes) => api.patch(`/daily-log/${date}/notes`, { notes }),
+  addPerson: (date, data) => api.post(`/daily-log/${date}/people`, data),
+  deletePerson: (date, personId) => api.delete(`/daily-log/${date}/people/${personId}`),
+  addLead: (date, data) => api.post(`/daily-log/${date}/leads`, data),
+  deleteLead: (date, leadId) => api.delete(`/daily-log/${date}/leads/${leadId}`),
+};
+
 export default api;
