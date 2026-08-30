@@ -93,11 +93,27 @@ export const dailyLogAPI = {
   getLog: (date) => api.get(`/daily-log/${date}`),
   getTeamLogs: (date) => api.get(`/daily-log/team/${date}`),
   updateStation: (date, station) => api.patch(`/daily-log/${date}/station`, { station }),
-  updateNotes: (date, notes) => api.patch(`/daily-log/${date}/notes`, { notes }),
-  addPerson: (date, data) => api.post(`/daily-log/${date}/people`, data),
-  deletePerson: (date, personId) => api.delete(`/daily-log/${date}/people/${personId}`),
-  addLead: (date, data) => api.post(`/daily-log/${date}/leads`, data),
-  deleteLead: (date, leadId) => api.delete(`/daily-log/${date}/leads/${leadId}`),
+  updateSummary: (date, data) => api.patch(`/daily-log/${date}/summary`, data),
+  addOutreach: (date, data) => api.post(`/daily-log/${date}/outreach`, data),
+  deleteOutreach: (date, entryId) => api.delete(`/daily-log/${date}/outreach/${entryId}`),
+  // any admin can edit/delete any other admin's outreach entry
+  updateOutreach: (date, adminId, entryId, data) => api.patch(`/daily-log/${date}/outreach/${entryId}`, { ...data, adminId }),
+  deleteOutreachForAdmin: (date, adminId, entryId) => api.delete(`/daily-log/${date}/outreach/${entryId}?adminId=${adminId}`),
+};
+
+// Leads CRM API (admin only)
+export const leadsAPI = {
+  getAll: (params) => api.get('/leads', { params }),
+  getAllAdmins: () => api.get('/leads/all-admins'),
+  getPipelineCounts: () => api.get('/leads/pipeline-counts'),
+  getById: (id) => api.get(`/leads/${id}`),
+  getHistory: (id) => api.get(`/leads/${id}`),
+  create: (data) => api.post('/leads', data),
+  update: (id, data) => api.patch(`/leads/${id}`, data),
+  remove: (id) => api.delete(`/leads/${id}`),
+  getActivitiesForDate: (date) => api.get(`/leads/activities/date/${date}`),
+  addActivity: (leadId, data) => api.post(`/leads/${leadId}/activities`, data),
+  deleteActivity: (activityId) => api.delete(`/leads/activities/${activityId}`),
 };
 
 export default api;
