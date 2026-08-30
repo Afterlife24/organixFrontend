@@ -91,6 +91,12 @@ const OutreachRow = ({ entry, onDelete }) => {
             <span className={`text-xs font-medium ${ch.text}`}>{ch.label}</span>
             <Pill bg={out.bg} text={out.text} label={out.label} />
           </div>
+          {(entry.phone || entry.email) && (
+            <div className="flex items-center gap-3 mt-0.5">
+              {entry.phone && <span className="text-xs text-gray-400">📞 {entry.phone}</span>}
+              {entry.email && <span className="text-xs text-gray-400">✉️ {entry.email}</span>}
+            </div>
+          )}
           {entry.followUpNote && <div className="text-xs text-blue-600 mt-0.5">↪ {entry.followUpNote}</div>}
         </div>
       </div>
@@ -124,7 +130,7 @@ const getOwnerColor = (ownerId) => {
 const LeadCard = ({ lead, onUpdate, onDelete, currentUserId }) => {
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
-  const [editData, setEditData] = useState({ nextStep: lead.nextStep, notes: lead.notes });
+  const [editData, setEditData] = useState({ nextStep: lead.nextStep, notes: lead.notes, phone: lead.phone || '', email: lead.email || '' });
   const [saving, setSaving] = useState(false);
   const [history, setHistory] = useState([]);
   const [historyLoaded, setHistoryLoaded] = useState(false);
@@ -228,6 +234,14 @@ const LeadCard = ({ lead, onUpdate, onDelete, currentUserId }) => {
         {/* ── edit form (inline, shown when editing) ── */}
         {editing ? (
           <div className="space-y-2">
+            <div className="grid grid-cols-2 gap-2">
+              <input type="tel" placeholder="Phone (optional)" value={editData.phone}
+                onChange={e => setEditData(d => ({ ...d, phone: e.target.value }))}
+                className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-200" />
+              <input type="email" placeholder="Email (optional)" value={editData.email}
+                onChange={e => setEditData(d => ({ ...d, email: e.target.value }))}
+                className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-200" />
+            </div>
             <input type="text" placeholder="Next step / follow-up"
               value={editData.nextStep}
               onChange={e => setEditData(d => ({ ...d, nextStep: e.target.value }))}
@@ -242,7 +256,7 @@ const LeadCard = ({ lead, onUpdate, onDelete, currentUserId }) => {
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-500 text-white text-xs font-semibold rounded-xl hover:bg-orange-600 disabled:opacity-50 transition-colors">
                 {saving ? <Spinner /> : <Check size={12} />} Save
               </button>
-              <button onClick={() => { setEditing(false); setEditData({ nextStep: lead.nextStep, notes: lead.notes }); }}
+              <button onClick={() => { setEditing(false); setEditData({ nextStep: lead.nextStep, notes: lead.notes, phone: lead.phone || '', email: lead.email || '' }); }}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-600 text-xs font-semibold rounded-xl transition-colors">
                 <X size={12} /> Cancel
               </button>
@@ -263,9 +277,11 @@ const LeadCard = ({ lead, onUpdate, onDelete, currentUserId }) => {
         )}
 
         {/* ── added date + contact (always visible) ── */}
-        <div className="flex gap-3 text-xs text-gray-400">
+        <div className="flex flex-wrap gap-3 text-xs text-gray-400">
           <span>Added {fmtDate(lead.firstContactDate || lead.createdAt)}</span>
           {lead.contact && <span>📞 {lead.contact}</span>}
+          {lead.phone && <span>📞 {lead.phone}</span>}
+          {lead.email && <span>✉️ {lead.email}</span>}
         </div>
 
         {/* ── history timeline (only when chevron expanded) ── */}
@@ -316,7 +332,7 @@ const LeadCard = ({ lead, onUpdate, onDelete, currentUserId }) => {
 // ─── add lead form (inline) ───────────────────────────────────────────────────
 const AddLeadForm = ({ onAdded, onCancel }) => {
   const [form, setForm] = useState({
-    name: '', company: '', contact: '',
+    name: '', company: '', contact: '', email: '',
     stage: 'lead', source: 'cold-call', serviceInterest: 'other', nextStep: ''
   });
   const [saving, setSaving] = useState(false);
@@ -345,9 +361,11 @@ const AddLeadForm = ({ onAdded, onCancel }) => {
         <div className="grid grid-cols-2 gap-2">
           <input type="text" placeholder="Company" value={form.company} onChange={e => setForm(f => ({ ...f, company: e.target.value }))}
             className="border border-gray-200 bg-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-200" />
-          <input type="text" placeholder="Contact / Phone" value={form.contact} onChange={e => setForm(f => ({ ...f, contact: e.target.value }))}
+          <input type="tel" placeholder="Phone (optional)" value={form.contact} onChange={e => setForm(f => ({ ...f, contact: e.target.value }))}
             className="border border-gray-200 bg-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-200" />
         </div>
+        <input type="email" placeholder="Email (optional)" value={form.email || ''} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+          className="w-full border border-gray-200 bg-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-200" />
         <div>
           <p className="text-xs text-gray-400 mb-2 font-medium">Source</p>
           <div className="flex flex-wrap gap-1.5">
@@ -586,7 +604,7 @@ const DailyLog = () => {
   const [stationInput, setStationInput] = useState('');
   const [stationEditing, setStationEditing] = useState(false);
 
-  const [outForm, setOutForm] = useState({ name: '', channel: 'cold-call', outcome: 'no-response', followUpNote: '' });
+  const [outForm, setOutForm] = useState({ name: '', phone: '', email: '', channel: 'cold-call', outcome: 'no-response', followUpNote: '' });
   const [addingOut, setAddingOut] = useState(false);
 
   const [wins, setWins] = useState('');
@@ -666,7 +684,7 @@ const DailyLog = () => {
     try {
       const r = await dailyLogAPI.addOutreach(dateStr, outForm);
       setLog(r.data.log);
-      setOutForm({ name: '', channel: 'cold-call', outcome: 'no-response', followUpNote: '' });
+      setOutForm({ name: '', phone: '', email: '', channel: 'cold-call', outcome: 'no-response', followUpNote: '' });
       toast.success('Added');
     } catch (err) { toast.error(err.response?.data?.message || 'Failed'); }
     finally { setAddingOut(false); }
@@ -803,6 +821,14 @@ const DailyLog = () => {
                     <input type="text" placeholder="Name / Company *" value={outForm.name}
                       onChange={e => setOutForm(f => ({ ...f, name: e.target.value }))}
                       className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200" required />
+                    <div className="grid grid-cols-2 gap-2">
+                      <input type="tel" placeholder="Phone (optional)" value={outForm.phone}
+                        onChange={e => setOutForm(f => ({ ...f, phone: e.target.value }))}
+                        className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200" />
+                      <input type="email" placeholder="Email (optional)" value={outForm.email}
+                        onChange={e => setOutForm(f => ({ ...f, email: e.target.value }))}
+                        className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200" />
+                    </div>
                     <div>
                       <p className="text-xs text-gray-400 mb-2 font-medium">Channel</p>
                       <div className="flex flex-wrap gap-1.5">
