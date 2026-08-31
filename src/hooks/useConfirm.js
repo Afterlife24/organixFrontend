@@ -56,6 +56,7 @@ export const useConfirm = () => {
     if (confirmState.onConfirm) {
       await confirmState.onConfirm();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [confirmState.onConfirm]);
 
   return {

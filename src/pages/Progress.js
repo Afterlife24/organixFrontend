@@ -26,8 +26,9 @@ const Progress = () => {
   const [taskInstances, setTaskInstances] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingUsers, setIsLoadingUsers] = useState(true);
-  const [dateCounts, setDateCounts] = useState({});
   const [dateStatus, setDateStatus] = useState({}); // 'green' or 'red' per date
+  // eslint-disable-next-line no-unused-vars
+  const [dateCounts, setDateCounts] = useState({});
 
   // Fetch all users
   useEffect(() => {

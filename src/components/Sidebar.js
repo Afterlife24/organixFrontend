@@ -2,9 +2,11 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { Calendar, Plus, CheckSquare, X, Sparkles, TrendingUp, Users, Shield, Key, BarChart3, ClipboardList } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useFollowUps } from '../context/FollowUpContext';
 
 const Sidebar = ({ onClose }) => {
   const { user } = useAuth();
+  const { todayCount } = useFollowUps();
 
   const navItems = [
     {
@@ -144,6 +146,12 @@ const Sidebar = ({ onClose }) => {
                     {item.description}
                   </div>
                 </div>
+                {/* Follow-up badge on Calendar item */}
+                {item.to === '/calendar' && user?.isAdmin && todayCount > 0 && (
+                  <span className="ml-auto flex-shrink-0 min-w-[20px] h-5 px-1 bg-orange-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                    {todayCount > 9 ? '9+' : todayCount}
+                  </span>
+                )}
               </NavLink>
             );
           })}

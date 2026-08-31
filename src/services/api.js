@@ -116,4 +116,10 @@ export const leadsAPI = {
   deleteActivity: (activityId) => api.delete(`/leads/activities/${activityId}`),
 };
 
+// Follow-ups API (admin only)
+export const followUpsAPI = {
+  getMonthCounts: (year, month) => api.get(`/follow-ups/month/${year}/${month}`),
+  getDateDetails: (date) => api.get(`/follow-ups/date/${date}`),
+};
+
 export default api;

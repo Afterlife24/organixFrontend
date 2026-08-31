@@ -202,7 +202,7 @@
 }
   /* Calendar specific styles */
   .calendar-day {
-    @apply relative transition-all duration-200 hover:scale-105;
+    @apply relative transition-all duration-200 hover:scale-105 overflow-visible;
   }
   
   .calendar-day-today {

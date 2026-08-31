@@ -98,6 +98,11 @@ const OutreachRow = ({ entry, onDelete }) => {
             </div>
           )}
           {entry.followUpNote && <div className="text-xs text-blue-600 mt-0.5">↪ {entry.followUpNote}</div>}
+          {entry.followUpDate && (
+            <div className="text-xs text-orange-500 font-semibold mt-0.5">
+              📅 {new Date(entry.followUpDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+            </div>
+          )}
         </div>
       </div>
       <button onClick={() => onDelete(entry._id)} className="p-1 text-gray-300 hover:text-red-400 transition-colors flex-shrink-0">
@@ -130,7 +135,7 @@ const getOwnerColor = (ownerId) => {
 const LeadCard = ({ lead, onUpdate, onDelete, currentUserId }) => {
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
-  const [editData, setEditData] = useState({ nextStep: lead.nextStep, notes: lead.notes, phone: lead.phone || '', email: lead.email || '' });
+  const [editData, setEditData] = useState({ nextStep: lead.nextStep, notes: lead.notes, phone: lead.phone || '', email: lead.email || '', followUpDate: lead.followUpDate ? lead.followUpDate.slice(0, 10) : '' });
   const [saving, setSaving] = useState(false);
   const [history, setHistory] = useState([]);
   const [historyLoaded, setHistoryLoaded] = useState(false);
@@ -138,7 +143,6 @@ const LeadCard = ({ lead, onUpdate, onDelete, currentUserId }) => {
   const sm = STAGE_META[lead.stage] || STAGE_META.lead;
   const src = CHANNEL_META[lead.source] || CHANNEL_META.other;
   const svc = SERVICE_META[lead.serviceInterest] || SERVICE_META.other;
-  const isOwner = true; // any admin can edit any lead
   const ownerColor = getOwnerColor(lead.ownerId?._id || lead.ownerId);
   const ownerName = lead.ownerId?.name || 'Unknown';
   const isMine = lead.ownerId?._id === currentUserId || lead.ownerId === currentUserId;
@@ -251,6 +255,14 @@ const LeadCard = ({ lead, onUpdate, onDelete, currentUserId }) => {
               onChange={e => setEditData(d => ({ ...d, notes: e.target.value }))}
               className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none resize-none"
             />
+            <div>
+              <p className="text-xs text-gray-400 mb-1 font-medium">Follow-up date <span className="text-gray-300">(shows on calendar)</span></p>
+              <input type="date"
+                value={editData.followUpDate}
+                onChange={e => setEditData(d => ({ ...d, followUpDate: e.target.value }))}
+                className="w-full border border-orange-200 bg-orange-50 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-200"
+              />
+            </div>
             <div className="flex gap-2">
               <button onClick={handleSave} disabled={saving}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-500 text-white text-xs font-semibold rounded-xl hover:bg-orange-600 disabled:opacity-50 transition-colors">
@@ -279,6 +291,11 @@ const LeadCard = ({ lead, onUpdate, onDelete, currentUserId }) => {
         {/* ── added date + contact (always visible) ── */}
         <div className="flex flex-wrap gap-3 text-xs text-gray-400">
           <span>Added {fmtDate(lead.firstContactDate || lead.createdAt)}</span>
+          {lead.followUpDate && (
+            <span className="text-orange-500 font-semibold bg-orange-50 px-2 py-0.5 rounded-full">
+              📅 Follow-up {fmtDate(lead.followUpDate)}
+            </span>
+          )}
           {lead.contact && <span>📞 {lead.contact}</span>}
           {lead.phone && <span>📞 {lead.phone}</span>}
           {lead.email && <span>✉️ {lead.email}</span>}
@@ -402,7 +419,7 @@ const AddLeadForm = ({ onAdded, onCancel }) => {
 // ─── editable outreach row (used in team view) ───────────────────────────────
 const EditableOutreachRow = ({ entry, dateStr, adminId, onUpdated, onDeleted }) => {
   const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState({ channel: entry.channel, outcome: entry.outcome, followUpNote: entry.followUpNote || '' });
+  const [form, setForm] = useState({ channel: entry.channel, outcome: entry.outcome, followUpNote: entry.followUpNote || '', followUpDate: entry.followUpDate ? new Date(entry.followUpDate).toISOString().slice(0, 10) : '' });
   const [saving, setSaving] = useState(false);
 
   const ch = CHANNEL_META[form.channel] || CHANNEL_META.other;
@@ -445,17 +462,30 @@ const EditableOutreachRow = ({ entry, dateStr, adminId, onUpdated, onDeleted }) 
           </div>
         </div>
         {form.outcome === 'follow-up' && (
-          <input type="text" placeholder="Follow-up note..." value={form.followUpNote}
-            onChange={e => setForm(f => ({ ...f, followUpNote: e.target.value }))}
-            className="w-full border border-blue-200 bg-blue-50 rounded-xl px-3 py-2 text-sm focus:outline-none"
-          />
+          <>
+            <input type="text" placeholder="Follow-up note..." value={form.followUpNote}
+              onChange={e => setForm(f => ({ ...f, followUpNote: e.target.value }))}
+              className="w-full border border-blue-200 bg-blue-50 rounded-xl px-3 py-2 text-sm focus:outline-none"
+            />
+            <div>
+              <p className="text-xs text-gray-400 mb-1.5 font-medium">
+                Follow-up date <span className="text-orange-500">*</span>
+                <span className="text-gray-300 ml-1">(appears on calendar)</span>
+              </p>
+              <input type="date"
+                value={form.followUpDate}
+                onChange={e => setForm(f => ({ ...f, followUpDate: e.target.value }))}
+                className="w-full border border-orange-200 bg-orange-50 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-200"
+              />
+            </div>
+          </>
         )}
         <div className="flex gap-2">
           <button onClick={handleSave} disabled={saving}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs font-semibold rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-colors">
             {saving ? <Spinner /> : <Check size={12} />} Save
           </button>
-          <button onClick={() => { setEditing(false); setForm({ channel: entry.channel, outcome: entry.outcome, followUpNote: entry.followUpNote || '' }); }}
+          <button onClick={() => { setEditing(false); setForm({ channel: entry.channel, outcome: entry.outcome, followUpNote: entry.followUpNote || '', followUpDate: entry.followUpDate ? new Date(entry.followUpDate).toISOString().slice(0, 10) : '' }); }}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-600 text-xs font-semibold rounded-xl transition-colors">
             <X size={12} /> Cancel
           </button>
@@ -477,6 +507,11 @@ const EditableOutreachRow = ({ entry, dateStr, adminId, onUpdated, onDeleted }) 
             <Pill bg={out.bg} text={out.text} label={out.label} />
           </div>
           {entry.followUpNote && <div className="text-xs text-blue-600 mt-0.5">↪ {entry.followUpNote}</div>}
+          {entry.followUpDate && (
+            <div className="text-xs text-orange-500 font-semibold mt-0.5">
+              📅 {new Date(entry.followUpDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+            </div>
+          )}
         </div>
       </div>
       <div className="flex items-center gap-1 flex-shrink-0 mt-0.5">
@@ -604,7 +639,7 @@ const DailyLog = () => {
   const [stationInput, setStationInput] = useState('');
   const [stationEditing, setStationEditing] = useState(false);
 
-  const [outForm, setOutForm] = useState({ name: '', phone: '', email: '', channel: 'cold-call', outcome: 'no-response', followUpNote: '' });
+  const [outForm, setOutForm] = useState({ name: '', phone: '', email: '', channel: 'cold-call', outcome: 'no-response', followUpNote: '', followUpDate: '' });
   const [addingOut, setAddingOut] = useState(false);
 
   const [wins, setWins] = useState('');
@@ -684,7 +719,7 @@ const DailyLog = () => {
     try {
       const r = await dailyLogAPI.addOutreach(dateStr, outForm);
       setLog(r.data.log);
-      setOutForm({ name: '', phone: '', email: '', channel: 'cold-call', outcome: 'no-response', followUpNote: '' });
+      setOutForm({ name: '', phone: '', email: '', channel: 'cold-call', outcome: 'no-response', followUpNote: '', followUpDate: '' });
       toast.success('Added');
     } catch (err) { toast.error(err.response?.data?.message || 'Failed'); }
     finally { setAddingOut(false); }
@@ -852,9 +887,19 @@ const DailyLog = () => {
                       </div>
                     </div>
                     {outForm.outcome === 'follow-up' && (
-                      <input type="text" placeholder="Follow-up note..." value={outForm.followUpNote}
-                        onChange={e => setOutForm(f => ({ ...f, followUpNote: e.target.value }))}
-                        className="w-full border border-blue-200 bg-blue-50 rounded-xl px-3 py-2 text-sm focus:outline-none" />
+                      <>
+                        <input type="text" placeholder="Follow-up note..." value={outForm.followUpNote}
+                          onChange={e => setOutForm(f => ({ ...f, followUpNote: e.target.value }))}
+                          className="w-full border border-blue-200 bg-blue-50 rounded-xl px-3 py-2 text-sm focus:outline-none" />
+                        <div>
+                          <p className="text-xs text-gray-400 mb-1.5 font-medium">Follow-up date <span className="text-orange-500 font-semibold">*</span> <span className="text-gray-300">(appears on calendar)</span></p>
+                          <input type="date"
+                            value={outForm.followUpDate}
+                            onChange={e => setOutForm(f => ({ ...f, followUpDate: e.target.value }))}
+                            className="w-full border border-orange-200 bg-orange-50 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-200"
+                          />
+                        </div>
+                      </>
                     )}
                     <button type="submit" disabled={addingOut || !outForm.name.trim()}
                       className="w-full flex items-center justify-center gap-2 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-colors">
