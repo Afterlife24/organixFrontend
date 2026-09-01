@@ -417,7 +417,7 @@ const AddLeadForm = ({ onAdded, onCancel }) => {
 };
 
 // ─── editable outreach row (used in team view) ───────────────────────────────
-const EditableOutreachRow = ({ entry, dateStr, adminId, onUpdated, onDeleted }) => {
+const EditableOutreachRow = ({ entry, dateStr, adminId, canDelete, onUpdated, onDeleted }) => {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({ channel: entry.channel, outcome: entry.outcome, followUpNote: entry.followUpNote || '', followUpDate: entry.followUpDate ? new Date(entry.followUpDate).toISOString().slice(0, 10) : '' });
   const [saving, setSaving] = useState(false);
@@ -518,16 +518,18 @@ const EditableOutreachRow = ({ entry, dateStr, adminId, onUpdated, onDeleted }) 
         <button onClick={() => setEditing(true)} className="p-1 text-gray-400 hover:text-blue-500 transition-colors rounded">
           <Edit2 size={13} />
         </button>
-        <button onClick={() => onDeleted(entry._id)} className="p-1 text-gray-300 hover:text-red-400 transition-colors rounded">
-          <Trash2 size={13} />
-        </button>
+        {canDelete && (
+          <button onClick={() => onDeleted(entry._id)} className="p-1 text-gray-300 hover:text-red-400 transition-colors rounded">
+            <Trash2 size={13} />
+          </button>
+        )}
       </div>
     </div>
   );
 };
 
 // ─── team view card ───────────────────────────────────────────────────────────
-const TeamCard = ({ entry, colorIndex, dateStr }) => {
+const TeamCard = ({ entry, colorIndex, dateStr, currentUserId }) => {
   const { admin, log: initialLog } = entry;
   const [open, setOpen] = useState(false);
   const [log, setLog] = useState(initialLog);
@@ -578,6 +580,7 @@ const TeamCard = ({ entry, colorIndex, dateStr }) => {
                     entry={o}
                     dateStr={dateStr}
                     adminId={admin._id}
+                    canDelete={String(currentUserId) === String(admin._id)}
                     onUpdated={setLog}
                     onDeleted={handleOutreachDeleted}
                   />
@@ -1058,7 +1061,7 @@ const DailyLog = () => {
               </p>
               {teamLoading
                 ? <div className="flex justify-center py-16"><LoadingSpinner size="large" /></div>
-                : teamLogs.map((entry, i) => <TeamCard key={entry.admin._id} entry={entry} colorIndex={i} dateStr={dateStr} />)
+                : teamLogs.map((entry, i) => <TeamCard key={entry.admin._id} entry={entry} colorIndex={i} dateStr={dateStr} currentUserId={user._id} />)
               }
             </div>
           )}
