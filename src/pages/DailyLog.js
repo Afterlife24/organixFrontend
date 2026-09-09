@@ -79,14 +79,15 @@ const Spinner = () => <div className="w-4 h-4 border-2 border-white border-t-tra
 const OutreachRow = ({ entry, onDelete }) => {
   const ch = CHANNEL_META[entry.channel] || CHANNEL_META.other;
   const out = OUTCOME_META[entry.outcome] || OUTCOME_META['no-response'];
+  const isPositive = ['interested', 'follow-up'].includes(entry.outcome);
   return (
-    <div className="flex items-start justify-between gap-3 py-3 border-b border-gray-100 last:border-0">
+    <div className={`flex items-start justify-between gap-3 py-3 border-b border-gray-100 last:border-0 ${!isPositive ? 'opacity-60' : ''}`}>
       <div className="flex items-start gap-3 min-w-0">
         <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${ch.bg} border ${ch.border}`}>
           <ch.icon size={14} className={ch.text} />
         </div>
         <div className="min-w-0">
-          <div className="font-medium text-gray-800 text-sm truncate">{entry.name}</div>
+          <div className={`font-medium text-sm truncate ${isPositive ? 'text-gray-800' : 'text-gray-500'}`}>{entry.name}</div>
           <div className="flex items-center gap-2 mt-1 flex-wrap">
             <span className={`text-xs font-medium ${ch.text}`}>{ch.label}</span>
             <Pill bg={out.bg} text={out.text} label={out.label} />
@@ -103,11 +104,76 @@ const OutreachRow = ({ entry, onDelete }) => {
               📅 {new Date(entry.followUpDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
             </div>
           )}
+          {entry.notes && <div className="text-xs text-gray-500 mt-0.5">{entry.notes}</div>}
         </div>
       </div>
       <button onClick={() => onDelete(entry._id)} className="p-1 text-gray-300 hover:text-red-400 transition-colors flex-shrink-0">
         <Trash2 size={14} />
       </button>
+    </div>
+  );
+};
+
+// ─── tabbed outreach list (used in My Log + Team View) ───────────────────────
+const TabbedOutreachList = ({ outreachList, onDelete }) => {
+  const [activeTab, setActiveTab] = useState('positive');
+
+  const positive = outreachList.filter(o => ['interested', 'follow-up'].includes(o.outcome));
+  const negative = outreachList.filter(o => ['not-interested', 'no-response'].includes(o.outcome));
+
+  if (outreachList.length === 0) return (
+    <p className="text-center text-gray-400 text-xs py-4">No outreach logged yet</p>
+  );
+
+  return (
+    <div>
+      {/* tabs */}
+      <div className="flex bg-gray-100 rounded-xl p-1 mb-3">
+        <button
+          onClick={() => setActiveTab('positive')}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+            activeTab === 'positive' ? 'bg-white shadow text-green-700' : 'text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0"></span>
+          Interested & Follow-ups
+          {positive.length > 0 && (
+            <span className={`px-1.5 py-0.5 rounded-full text-xs font-bold ${activeTab === 'positive' ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-500'}`}>
+              {positive.length}
+            </span>
+          )}
+        </button>
+        <button
+          onClick={() => setActiveTab('negative')}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+            activeTab === 'negative' ? 'bg-white shadow text-gray-600' : 'text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          <span className="w-2 h-2 rounded-full bg-gray-400 flex-shrink-0"></span>
+          Not Interested & No Response
+          {negative.length > 0 && (
+            <span className={`px-1.5 py-0.5 rounded-full text-xs font-bold ${activeTab === 'negative' ? 'bg-gray-100 text-gray-600' : 'bg-gray-200 text-gray-500'}`}>
+              {negative.length}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {/* content */}
+      {activeTab === 'positive' && (
+        positive.length === 0
+          ? <p className="text-center text-gray-400 text-xs py-4">No interested or follow-up entries</p>
+          : <div className="space-y-0">
+              {positive.map(entry => <OutreachRow key={entry._id} entry={entry} onDelete={onDelete || (() => {})} />)}
+            </div>
+      )}
+      {activeTab === 'negative' && (
+        negative.length === 0
+          ? <p className="text-center text-gray-400 text-xs py-4">No not-interested or no-response entries</p>
+          : <div className="space-y-0 opacity-80">
+              {negative.map(entry => <OutreachRow key={entry._id} entry={entry} onDelete={onDelete || (() => {})} />)}
+            </div>
+      )}
     </div>
   );
 };
@@ -419,7 +485,7 @@ const AddLeadForm = ({ onAdded, onCancel }) => {
 // ─── editable outreach row (used in team view) ───────────────────────────────
 const EditableOutreachRow = ({ entry, dateStr, adminId, canDelete, onUpdated, onDeleted }) => {
   const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState({ channel: entry.channel, outcome: entry.outcome, followUpNote: entry.followUpNote || '', followUpDate: entry.followUpDate ? new Date(entry.followUpDate).toISOString().slice(0, 10) : '' });
+  const [form, setForm] = useState({ channel: entry.channel, outcome: entry.outcome, followUpNote: entry.followUpNote || '', followUpDate: entry.followUpDate ? new Date(entry.followUpDate).toISOString().slice(0, 10) : '', notes: entry.notes || '' });
   const [saving, setSaving] = useState(false);
 
   const ch = CHANNEL_META[form.channel] || CHANNEL_META.other;
@@ -480,12 +546,19 @@ const EditableOutreachRow = ({ entry, dateStr, adminId, canDelete, onUpdated, on
             </div>
           </>
         )}
+        <textarea
+          placeholder="Notes (optional)"
+          value={form.notes}
+          onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
+          rows={2}
+          className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 resize-none"
+        />
         <div className="flex gap-2">
           <button onClick={handleSave} disabled={saving}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs font-semibold rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-colors">
             {saving ? <Spinner /> : <Check size={12} />} Save
           </button>
-          <button onClick={() => { setEditing(false); setForm({ channel: entry.channel, outcome: entry.outcome, followUpNote: entry.followUpNote || '', followUpDate: entry.followUpDate ? new Date(entry.followUpDate).toISOString().slice(0, 10) : '' }); }}
+          <button onClick={() => { setEditing(false); setForm({ channel: entry.channel, outcome: entry.outcome, followUpNote: entry.followUpNote || '', followUpDate: entry.followUpDate ? new Date(entry.followUpDate).toISOString().slice(0, 10) : '', notes: entry.notes || '' }); }}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-600 text-xs font-semibold rounded-xl transition-colors">
             <X size={12} /> Cancel
           </button>
@@ -512,6 +585,7 @@ const EditableOutreachRow = ({ entry, dateStr, adminId, canDelete, onUpdated, on
               📅 {new Date(entry.followUpDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
             </div>
           )}
+          {entry.notes && <div className="text-xs text-gray-500 mt-0.5">{entry.notes}</div>}
         </div>
       </div>
       <div className="flex items-center gap-1 flex-shrink-0 mt-0.5">
@@ -522,6 +596,74 @@ const EditableOutreachRow = ({ entry, dateStr, adminId, canDelete, onUpdated, on
           <button onClick={() => onDeleted(entry._id)} className="p-1 text-gray-300 hover:text-red-400 transition-colors rounded">
             <Trash2 size={13} />
           </button>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ─── tabbed editable outreach list (team view) ───────────────────────────────
+const TabbedEditableOutreachList = ({ outreachList, dateStr, adminId, canDelete, onUpdated, onDeleted }) => {
+  const [activeTab, setActiveTab] = useState('positive');
+
+  const positive = outreachList.filter(o => ['interested', 'follow-up'].includes(o.outcome));
+  const negative = outreachList.filter(o => ['not-interested', 'no-response'].includes(o.outcome));
+
+  const renderRow = (entry) => (
+    <EditableOutreachRow
+      key={entry._id}
+      entry={entry}
+      dateStr={dateStr}
+      adminId={adminId}
+      canDelete={canDelete}
+      onUpdated={onUpdated}
+      onDeleted={onDeleted}
+    />
+  );
+
+  return (
+    <div>
+      <div className="flex bg-gray-100 rounded-xl p-1 mb-3">
+        <button
+          onClick={() => setActiveTab('positive')}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+            activeTab === 'positive' ? 'bg-white shadow text-green-700' : 'text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0"></span>
+          Interested & Follow-ups
+          {positive.length > 0 && (
+            <span className={`px-1.5 py-0.5 rounded-full text-xs font-bold ml-1 ${activeTab === 'positive' ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-500'}`}>
+              {positive.length}
+            </span>
+          )}
+        </button>
+        <button
+          onClick={() => setActiveTab('negative')}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+            activeTab === 'negative' ? 'bg-white shadow text-gray-600' : 'text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          <span className="w-2 h-2 rounded-full bg-gray-400 flex-shrink-0"></span>
+          Cold / No Response
+          {negative.length > 0 && (
+            <span className={`px-1.5 py-0.5 rounded-full text-xs font-bold ml-1 ${activeTab === 'negative' ? 'bg-gray-100 text-gray-600' : 'bg-gray-200 text-gray-500'}`}>
+              {negative.length}
+            </span>
+          )}
+        </button>
+      </div>
+
+      <div className="bg-white border border-gray-200 rounded-xl px-3">
+        {activeTab === 'positive' && (
+          positive.length === 0
+            ? <p className="text-center text-gray-400 text-xs py-4">No interested or follow-up entries</p>
+            : positive.map(entry => renderRow(entry))
+        )}
+        {activeTab === 'negative' && (
+          negative.length === 0
+            ? <p className="text-center text-gray-400 text-xs py-4">No not-interested or no-response entries</p>
+            : negative.map(entry => renderRow(entry))
         )}
       </div>
     </div>
@@ -567,25 +709,20 @@ const TeamCard = ({ entry, colorIndex, dateStr, currentUserId }) => {
       {open && (
         <div className="border-t border-gray-100 px-4 py-4 space-y-4 bg-gray-50/40">
 
-          {/* outreach — full detail, editable */}
+          {/* outreach — full detail, editable, tabbed */}
           {outCount > 0 ? (
             <div>
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
                 Outreach ({outCount})
               </p>
-              <div className="bg-white border border-gray-200 rounded-xl px-3">
-                {log.outreach.map(o => (
-                  <EditableOutreachRow
-                    key={o._id}
-                    entry={o}
-                    dateStr={dateStr}
-                    adminId={admin._id}
-                    canDelete={String(currentUserId) === String(admin._id)}
-                    onUpdated={setLog}
-                    onDeleted={handleOutreachDeleted}
-                  />
-                ))}
-              </div>
+              <TabbedEditableOutreachList
+                outreachList={log.outreach}
+                dateStr={dateStr}
+                adminId={admin._id}
+                canDelete={String(currentUserId) === String(admin._id)}
+                onUpdated={setLog}
+                onDeleted={handleOutreachDeleted}
+              />
             </div>
           ) : (
             <p className="text-xs text-gray-400 italic">No outreach logged</p>
@@ -642,7 +779,7 @@ const DailyLog = () => {
   const [stationInput, setStationInput] = useState('');
   const [stationEditing, setStationEditing] = useState(false);
 
-  const [outForm, setOutForm] = useState({ name: '', phone: '', email: '', channel: 'cold-call', outcome: 'no-response', followUpNote: '', followUpDate: '' });
+  const [outForm, setOutForm] = useState({ name: '', phone: '', email: '', channel: 'cold-call', outcome: 'no-response', followUpNote: '', followUpDate: '', notes: '' });
   const [addingOut, setAddingOut] = useState(false);
 
   const [wins, setWins] = useState('');
@@ -722,7 +859,7 @@ const DailyLog = () => {
     try {
       const r = await dailyLogAPI.addOutreach(dateStr, outForm);
       setLog(r.data.log);
-      setOutForm({ name: '', phone: '', email: '', channel: 'cold-call', outcome: 'no-response', followUpNote: '', followUpDate: '' });
+      setOutForm({ name: '', phone: '', email: '', channel: 'cold-call', outcome: 'no-response', followUpNote: '', followUpDate: '', notes: '' });
       toast.success('Added');
     } catch (err) { toast.error(err.response?.data?.message || 'Failed'); }
     finally { setAddingOut(false); }
@@ -904,14 +1041,20 @@ const DailyLog = () => {
                         </div>
                       </>
                     )}
+                    <textarea
+                      placeholder="Notes (optional)"
+                      value={outForm.notes}
+                      onChange={e => setOutForm(f => ({ ...f, notes: e.target.value }))}
+                      rows={2}
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 resize-none"
+                    />
                     <button type="submit" disabled={addingOut || !outForm.name.trim()}
                       className="w-full flex items-center justify-center gap-2 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-colors">
                       {addingOut ? <Spinner /> : <Plus size={15} />} Add Outreach
-                    </button>
-                  </form>
+                    </button>                  </form>
                   <div className="px-4">
-                    {log?.outreach?.length > 0
-                      ? log.outreach.map(o => <OutreachRow key={o._id} entry={o} onDelete={handleDeleteOutreach} />)
+                    {(log?.outreach?.length || 0) > 0
+                      ? <TabbedOutreachList outreachList={log.outreach} onDelete={handleDeleteOutreach} />
                       : <p className="text-center text-gray-400 text-xs py-6">No outreach logged yet for this date</p>
                     }
                   </div>
