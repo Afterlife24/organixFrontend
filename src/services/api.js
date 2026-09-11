@@ -120,6 +120,7 @@ export const leadsAPI = {
 export const followUpsAPI = {
   getMonthCounts: (year, month) => api.get(`/follow-ups/month/${year}/${month}`),
   getDateDetails: (date) => api.get(`/follow-ups/date/${date}`),
+  updateStatus: (data) => api.patch('/follow-ups/status', data),
 };
 
 export default api;

@@ -1,23 +1,19 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTask } from '../context/TaskContext';
 import { useAuth } from '../context/AuthContext';
 import { taskInstanceAPI, followUpsAPI } from '../services/api';
 import TaskInstanceCard from '../components/TaskInstanceCard';
 import LoadingSpinner from '../components/LoadingSpinner';
 import CreateTaskModal from '../components/CreateTaskModal';
+import toast from 'react-hot-toast';
 import {
   Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus,
-  Phone, Linkedin, MessageCircle, Star, GitBranch, Zap, TrendingUp
+  Phone, Linkedin, MessageCircle, Star, GitBranch, Zap, TrendingUp,
+  Check, FileText
 } from 'lucide-react';
 import {
-  getLocalDateString,
-  isToday,
-  isSameDay,
-  formatDate,
-  getMonthName,
-  getYear,
-  generateCalendarDays,
-  isInCurrentMonth
+  getLocalDateString, isToday, isSameDay, formatDate,
+  getMonthName, getYear, generateCalendarDays, isInCurrentMonth
 } from '../utils/dateUtils';
 
 // ─── channel icon map ─────────────────────────────────────────────────────────
@@ -30,84 +26,143 @@ const CHANNEL_ICON = {
   'other':     Zap,
 };
 
-const CHANNEL_LABEL = {
-  'cold-call': 'Cold Call',
-  'linkedin':  'LinkedIn',
-  'whatsapp':  'WhatsApp',
-  'event':     'Event',
-  'referral':  'Referral',
-  'other':     'Other',
-};
+// ─── follow-up card with checkbox + notes ────────────────────────────────────
 
-const STAGE_META = {
-  'lead':         { label: 'Lead',         bg: 'bg-gray-100',   text: 'text-gray-600'   },
-  'conversation': { label: 'Conversation', bg: 'bg-blue-100',   text: 'text-blue-700'   },
-  'meeting':      { label: 'Meeting',      bg: 'bg-yellow-100', text: 'text-yellow-700' },
-  'proposal':     { label: 'Proposal',     bg: 'bg-orange-100', text: 'text-orange-700' },
-  'client':       { label: 'Client',       bg: 'bg-green-100',  text: 'text-green-700'  },
-  'lost':         { label: 'Lost',         bg: 'bg-red-100',    text: 'text-red-600'    },
-};
+const FollowUpCard = ({ entry, entryType, date, accentBg, accentBorder, accentText, icon: Icon, iconColor, onStatusChange }) => {
+  const [completed, setCompleted] = useState(entry.status?.completed || false);
+  const [note, setNote] = useState(entry.status?.note || '');
+  const [showNote, setShowNote] = useState(!!(entry.status?.note));
+  const [saving, setSaving] = useState(false);
+  const noteTimer = useRef(null);
 
-// ─── follow-up card components ────────────────────────────────────────────────
+  const handleToggle = async () => {
+    const newVal = !completed;
+    // if marking as complete, note is required
+    if (newVal && !note.trim()) {
+      setShowNote(true);
+      toast.error('Please add a note before marking as done');
+      return;
+    }
+    setCompleted(newVal);
+    try {
+      await followUpsAPI.updateStatus({
+        entryId: entry._id,
+        entryType,
+        date,
+        completed: newVal,
+      });
+      if (onStatusChange) onStatusChange(entry._id, { completed: newVal, note });
+    } catch {
+      setCompleted(!newVal);
+      toast.error('Failed to update');
+    }
+  };
 
-const OutreachFollowUpCard = ({ entry }) => {
-  const Icon = CHANNEL_ICON[entry.channel] || Zap;
+  const handleNoteChange = (val) => {
+    setNote(val);
+    clearTimeout(noteTimer.current);
+    noteTimer.current = setTimeout(async () => {
+      setSaving(true);
+      try {
+        await followUpsAPI.updateStatus({
+          entryId: entry._id,
+          entryType,
+          date,
+          note: val,
+        });
+        if (onStatusChange) onStatusChange(entry._id, { completed, note: val });
+      } catch { toast.error('Failed to save note'); }
+      finally { setSaving(false); }
+    }, 700);
+  };
+
+  // name is top-level for outreach, or lead.name
+  const name = entry.name;
+  const isLead = entryType === 'lead';
+
   return (
-    <div className="flex items-start gap-3 p-3 bg-blue-50 border border-blue-100 rounded-xl">
-      <div className="w-7 h-7 bg-blue-100 border border-blue-200 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
-        <Icon size={13} className="text-blue-600" />
-      </div>
-      <div className="min-w-0">
-        <div className="font-semibold text-gray-900 text-sm">{entry.name}</div>
-        <div className="text-xs text-blue-600 font-medium mt-0.5">
-          {CHANNEL_LABEL[entry.channel] || 'Other'}
-        </div>
-        {entry.followUpNote && (
-          <div className="text-xs text-gray-600 mt-0.5">↪ {entry.followUpNote}</div>
-        )}
-        {(entry.phone || entry.email) && (
-          <div className="flex gap-3 mt-0.5">
-            {entry.phone && <span className="text-xs text-gray-400">📞 {entry.phone}</span>}
-            {entry.email && <span className="text-xs text-gray-400">✉️ {entry.email}</span>}
-          </div>
-        )}
-        {entry.loggedBy && (
-          <div className="text-xs text-gray-400 mt-0.5">by {entry.loggedBy.name}</div>
-        )}
-      </div>
-    </div>
-  );
-};
+    <div className={`border rounded-xl overflow-hidden transition-all ${completed ? 'opacity-60' : ''} ${accentBorder}`}>
+      <div className={`flex items-start gap-3 p-3 ${accentBg}`}>
+        {/* checkbox */}
+        <button
+          onClick={handleToggle}
+          className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-all ${
+            completed
+              ? 'bg-green-500 border-green-500'
+              : `bg-white ${accentBorder} hover:border-green-400`
+          }`}
+        >
+          {completed && <Check size={11} className="text-white" />}
+        </button>
 
-const LeadFollowUpCard = ({ lead }) => {
-  const sm = STAGE_META[lead.stage] || STAGE_META.lead;
-  return (
-    <div className="flex items-start gap-3 p-3 bg-orange-50 border border-orange-100 rounded-xl">
-      <div className="w-7 h-7 bg-orange-100 border border-orange-200 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
-        <TrendingUp size={13} className="text-orange-500" />
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-semibold text-gray-900 text-sm">{lead.name}</span>
-          {lead.company && <span className="text-xs text-gray-400">{lead.company}</span>}
-          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${sm.bg} ${sm.text}`}>
-            {sm.label}
-          </span>
+        {/* icon */}
+        <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 bg-white border ${accentBorder}`}>
+          <Icon size={13} className={iconColor} />
         </div>
-        {lead.nextStep && (
-          <div className="text-xs text-orange-700 mt-0.5 bg-orange-100 rounded-lg px-2 py-0.5">
-            ↪ {lead.nextStep}
+
+        {/* content */}
+        <div className="min-w-0 flex-1">
+          <div className={`font-semibold text-sm ${completed ? 'line-through text-gray-400' : 'text-gray-900'}`}>
+            {name}
           </div>
-        )}
-        {(lead.phone || lead.email) && (
-          <div className="flex gap-3 mt-0.5">
-            {lead.phone && <span className="text-xs text-gray-400">📞 {lead.phone}</span>}
-            {lead.email && <span className="text-xs text-gray-400">✉️ {lead.email}</span>}
+
+          {/* outreach-specific */}
+          {!isLead && (
+            <>
+              <div className={`text-xs font-medium mt-0.5 ${accentText}`}>
+                {entry.channel ? entry.channel.replace('-', ' ').replace(/\b\w/g, c => c.toUpperCase()) : ''}
+              </div>
+              {entry.followUpNote && <div className="text-xs text-gray-600 mt-0.5">↪ {entry.followUpNote}</div>}
+            </>
+          )}
+
+          {/* lead-specific */}
+          {isLead && (
+            <>
+              {entry.company && <div className="text-xs text-gray-400">{entry.company}</div>}
+              {entry.nextStep && (
+                <div className={`text-xs mt-0.5 ${accentText} font-medium`}>↪ {entry.nextStep}</div>
+              )}
+            </>
+          )}
+
+          {/* contact */}
+          {(entry.phone || entry.email) && (
+            <div className="flex gap-3 mt-0.5">
+              {entry.phone && <span className="text-xs text-gray-400">📞 {entry.phone}</span>}
+              {entry.email && <span className="text-xs text-gray-400">✉️ {entry.email}</span>}
+            </div>
+          )}
+
+          {/* logged by */}
+          {(entry.loggedBy || entry.ownerId) && (
+            <div className="text-xs text-gray-400 mt-0.5">
+              by {entry.loggedBy?.name || entry.ownerId?.name}
+            </div>
+          )}
+
+          {/* note toggle + input */}
+          <div className="mt-2">
+            <button
+              onClick={() => setShowNote(v => !v)}
+              className={`flex items-center gap-1 text-xs font-medium transition-colors ${showNote ? accentText : 'text-gray-400 hover:text-gray-600'}`}
+            >
+              <FileText size={11} />
+              {showNote ? 'Hide note' : note ? 'View note' : '+ Add note'}
+              {!note.trim() && !completed && <span className="text-orange-400 ml-1">(required to complete)</span>}
+              {saving && <span className="text-gray-400 ml-1 text-xs">saving...</span>}
+            </button>
+            {showNote && (
+              <textarea
+                value={note}
+                onChange={e => handleNoteChange(e.target.value)}
+                placeholder="Add a note about this follow-up..."
+                rows={2}
+                className="mt-1.5 w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-300 resize-none bg-white"
+              />
+            )}
           </div>
-        )}
-        {lead.ownerId && (
-          <div className="text-xs text-gray-400 mt-0.5">by {lead.ownerId.name}</div>
-        )}
+        </div>
       </div>
     </div>
   );
@@ -129,9 +184,16 @@ const Calendar = () => {
   // follow-up counts per day { "2026-08-22": { outreach: 2, leads: 1 } }
   const [monthFollowUpCounts, setMonthFollowUpCounts] = useState({});
 
-  // follow-up details for selected date
+  // ── follow-up details for selected date ─────────────────────────────────
   const [followUps, setFollowUps] = useState({ outreach: [], leads: [] });
   const [followUpsLoading, setFollowUpsLoading] = useState(false);
+
+  const handleStatusChange = useCallback((entryId, newStatus) => {
+    setFollowUps(prev => ({
+      outreach: prev.outreach.map(o => o._id === entryId ? { ...o, status: newStatus } : o),
+      leads: prev.leads.map(l => l._id === entryId ? { ...l, status: newStatus } : l),
+    }));
+  }, []);
 
   // mobile panel tab
   const [mobileTab, setMobileTab] = useState('tasks'); // 'tasks' | 'followups'
@@ -217,8 +279,6 @@ const Calendar = () => {
     currentMonth.getFullYear() === new Date().getFullYear();
 
   const totalFollowUps = followUps.outreach.length + followUps.leads.length;
-
-  // ── tasks panel ───────────────────────────────────────────────────────────
   const TasksPanel = () => (
     <div className="flex-1 overflow-hidden flex flex-col">
       <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100">
@@ -288,7 +348,12 @@ const Calendar = () => {
   );
 
   // ── follow-ups panel ──────────────────────────────────────────────────────
-  const FollowUpsPanel = () => (
+  const FollowUpsPanel = () => {
+    const dateStr = getLocalDateString(selectedDate);
+    const completed = [...followUps.outreach, ...followUps.leads].filter(e => e.status?.completed).length;
+    const total = followUps.outreach.length + followUps.leads.length;
+
+    return (
     <div className="flex-1 overflow-hidden flex flex-col">
       <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-orange-50 to-orange-100">
         <h3 className="text-base font-semibold text-gray-900 mb-1">Follow-ups</h3>
@@ -301,12 +366,18 @@ const Calendar = () => {
             <span className="w-2 h-2 bg-orange-500 rounded-full"></span>
             {followUps.leads.length} leads
           </span>
+          {total > 0 && (
+            <span className="flex items-center gap-1.5 ml-auto">
+              <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+              {completed}/{total} done
+            </span>
+          )}
         </div>
       </div>
       <div className="flex-1 overflow-y-auto">
         {followUpsLoading ? (
           <div className="flex justify-center py-8"><LoadingSpinner size="medium" /></div>
-        ) : totalFollowUps === 0 ? (
+        ) : total === 0 ? (
           <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
             <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-3">
               <TrendingUp className="text-gray-400" size={24} />
@@ -326,9 +397,23 @@ const Calendar = () => {
                   </span>
                 </div>
                 <div className="space-y-2">
-                  {followUps.outreach.map((entry, i) => (
-                    <OutreachFollowUpCard key={entry._id || i} entry={entry} />
-                  ))}
+                  {followUps.outreach.map((entry, i) => {
+                    const Icon = CHANNEL_ICON[entry.channel] || Zap;
+                    return (
+                      <FollowUpCard
+                        key={entry._id || i}
+                        entry={entry}
+                        entryType="outreach"
+                        date={dateStr}
+                        accentBg="bg-blue-50"
+                        accentBorder="border-blue-100"
+                        accentText="text-blue-600"
+                        icon={Icon}
+                        iconColor="text-blue-600"
+                        onStatusChange={handleStatusChange}
+                      />
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -344,7 +429,18 @@ const Calendar = () => {
                 </div>
                 <div className="space-y-2">
                   {followUps.leads.map(lead => (
-                    <LeadFollowUpCard key={lead._id} lead={lead} />
+                    <FollowUpCard
+                      key={lead._id}
+                      entry={lead}
+                      entryType="lead"
+                      date={dateStr}
+                      accentBg="bg-orange-50"
+                      accentBorder="border-orange-100"
+                      accentText="text-orange-600"
+                      icon={TrendingUp}
+                      iconColor="text-orange-500"
+                      onStatusChange={handleStatusChange}
+                    />
                   ))}
                 </div>
               </div>
@@ -354,6 +450,7 @@ const Calendar = () => {
       </div>
     </div>
   );
+  };
 
   return (
     <div className="h-full flex flex-col">
