@@ -747,7 +747,13 @@ const TeamCard = ({ entry, colorIndex, dateStr, currentUserId }) => {
           )}
 
           {log?.notes && (
-            <p className="text-xs text-gray-600 bg-white border border-gray-200 rounded-xl px-3 py-2.5 whitespace-pre-wrap">{log.notes}</p>
+            <div className="bg-white border border-gray-200 rounded-xl px-3 py-2.5">
+              <div className="flex items-center gap-1.5 mb-1">
+                <FileText size={12} className="text-gray-400" />
+                <span className="text-xs font-semibold text-gray-500">Notes</span>
+              </div>
+              <p className="text-xs text-gray-600 whitespace-pre-wrap">{log.notes}</p>
+            </div>
           )}
 
           {!hasContent && <p className="text-center text-xs text-gray-400 italic py-2">Nothing logged</p>}
