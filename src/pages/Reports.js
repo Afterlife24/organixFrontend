@@ -62,7 +62,7 @@ const StatCard = ({ label, value, color = 'text-gray-900', bg = 'bg-white' }) =>
 // ─── day card ─────────────────────────────────────────────────────────────────
 const DayCard = ({ day, defaultOpen = false }) => {
   const [open, setOpen] = useState(defaultOpen);
-  const hasActivity = day.outreachTotal > 0 || day.wins || day.blockers || day.notes;
+  const hasActivity = day.outreachTotal > 0 || day.wins || day.blockers || day.notes || day.taskNotes;
 
   return (
     <div className={`border rounded-2xl overflow-hidden ${hasActivity ? 'border-gray-200' : 'border-dashed border-gray-200 opacity-60'}`}>
@@ -119,24 +119,32 @@ const DayCard = ({ day, defaultOpen = false }) => {
             </div>
           )}
 
-          {/* wins / blockers / notes */}
-          {(day.wins || day.blockers || day.notes) && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {day.wins && (
-                <div className="bg-green-50 border border-green-100 rounded-xl px-3 py-2">
-                  <div className="flex items-center gap-1.5 mb-1"><Trophy size={11} className="text-green-600" /><span className="text-xs font-semibold text-green-700">Wins</span></div>
-                  <p className="text-xs text-gray-700 whitespace-pre-wrap">{day.wins}</p>
+          {/* wins / blockers / notes / taskNotes */}
+          {(day.taskNotes || day.wins || day.blockers || day.notes) && (
+            <div className="space-y-2">
+              {day.taskNotes && (
+                <div className="bg-indigo-50 border border-indigo-100 rounded-xl px-3 py-2.5">
+                  <div className="flex items-center gap-1.5 mb-1"><FileText size={11} className="text-indigo-500" /><span className="text-xs font-semibold text-indigo-700">Notes / Tasks</span></div>
+                  <p className="text-xs text-gray-700 whitespace-pre-wrap">{day.taskNotes}</p>
                 </div>
               )}
-              {day.blockers && (
-                <div className="bg-red-50 border border-red-100 rounded-xl px-3 py-2">
-                  <div className="flex items-center gap-1.5 mb-1"><AlertOctagon size={11} className="text-red-500" /><span className="text-xs font-semibold text-red-600">Blockers</span></div>
-                  <p className="text-xs text-gray-700 whitespace-pre-wrap">{day.blockers}</p>
-                </div>
-              )}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {day.wins && (
+                  <div className="bg-green-50 border border-green-100 rounded-xl px-3 py-2">
+                    <div className="flex items-center gap-1.5 mb-1"><Trophy size={11} className="text-green-600" /><span className="text-xs font-semibold text-green-700">Wins</span></div>
+                    <p className="text-xs text-gray-700 whitespace-pre-wrap">{day.wins}</p>
+                  </div>
+                )}
+                {day.blockers && (
+                  <div className="bg-red-50 border border-red-100 rounded-xl px-3 py-2">
+                    <div className="flex items-center gap-1.5 mb-1"><AlertOctagon size={11} className="text-red-500" /><span className="text-xs font-semibold text-red-600">Blockers</span></div>
+                    <p className="text-xs text-gray-700 whitespace-pre-wrap">{day.blockers}</p>
+                  </div>
+                )}
+              </div>
               {day.notes && (
-                <div className="bg-white border border-gray-200 rounded-xl px-3 py-2 sm:col-span-2">
-                  <div className="flex items-center gap-1.5 mb-1"><FileText size={11} className="text-gray-400" /><span className="text-xs font-semibold text-gray-500">Notes</span></div>
+                <div className="bg-white border border-gray-200 rounded-xl px-3 py-2">
+                  <div className="flex items-center gap-1.5 mb-1"><FileText size={11} className="text-gray-400" /><span className="text-xs font-semibold text-gray-500">Other Notes</span></div>
                   <p className="text-xs text-gray-600 whitespace-pre-wrap">{day.notes}</p>
                 </div>
               )}
@@ -488,7 +496,7 @@ const Reports = () => {
             <p className="text-center text-xs text-gray-400 mt-1">
               {weekStart} → {(() => {
                 const [y, m, d] = weekStart.split('-').map(Number);
-                const end = new Date(y, m - 1, d + 5);
+                const end = new Date(y, m - 1, d + 6); // Sunday
                 return toDateStr(end);
               })()}
             </p>

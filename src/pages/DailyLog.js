@@ -677,7 +677,7 @@ const TeamCard = ({ entry, colorIndex, dateStr, currentUserId }) => {
   const [log, setLog] = useState(initialLog);
   const color = AVATAR_COLORS[colorIndex % AVATAR_COLORS.length];
   const outCount = log?.outreach?.length || 0;
-  const hasContent = outCount > 0 || log?.wins || log?.blockers || log?.notes;
+  const hasContent = outCount > 0 || log?.wins || log?.blockers || log?.notes || log?.taskNotes;
 
   const handleOutreachDeleted = async (entryId) => {
     try {
@@ -729,20 +729,28 @@ const TeamCard = ({ entry, colorIndex, dateStr, currentUserId }) => {
           )}
 
           {/* wins & blockers */}
-          {(log?.wins || log?.blockers) && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {log.wins && (
-                <div className="bg-green-50 border border-green-100 rounded-xl px-3 py-2.5">
-                  <div className="flex items-center gap-1.5 mb-1"><Trophy size={12} className="text-green-600" /><span className="text-xs font-semibold text-green-700">Wins</span></div>
-                  <p className="text-xs text-gray-700 whitespace-pre-wrap">{log.wins}</p>
+          {(log?.taskNotes || log?.wins || log?.blockers) && (
+            <div className="space-y-2">
+              {log.taskNotes && (
+                <div className="bg-indigo-50 border border-indigo-100 rounded-xl px-3 py-2.5">
+                  <div className="flex items-center gap-1.5 mb-1"><FileText size={12} className="text-indigo-500" /><span className="text-xs font-semibold text-indigo-700">Notes / Tasks</span></div>
+                  <p className="text-xs text-gray-700 whitespace-pre-wrap">{log.taskNotes}</p>
                 </div>
               )}
-              {log.blockers && (
-                <div className="bg-red-50 border border-red-100 rounded-xl px-3 py-2.5">
-                  <div className="flex items-center gap-1.5 mb-1"><AlertOctagon size={12} className="text-red-500" /><span className="text-xs font-semibold text-red-600">Blockers</span></div>
-                  <p className="text-xs text-gray-700 whitespace-pre-wrap">{log.blockers}</p>
-                </div>
-              )}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {log.wins && (
+                  <div className="bg-green-50 border border-green-100 rounded-xl px-3 py-2.5">
+                    <div className="flex items-center gap-1.5 mb-1"><Trophy size={12} className="text-green-600" /><span className="text-xs font-semibold text-green-700">Wins</span></div>
+                    <p className="text-xs text-gray-700 whitespace-pre-wrap">{log.wins}</p>
+                  </div>
+                )}
+                {log.blockers && (
+                  <div className="bg-red-50 border border-red-100 rounded-xl px-3 py-2.5">
+                    <div className="flex items-center gap-1.5 mb-1"><AlertOctagon size={12} className="text-red-500" /><span className="text-xs font-semibold text-red-600">Blockers</span></div>
+                    <p className="text-xs text-gray-700 whitespace-pre-wrap">{log.blockers}</p>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
@@ -779,7 +787,7 @@ const DailyLog = () => {
   const [viewMode, setViewMode] = useState('mine');
   const [teamLogs, setTeamLogs] = useState([]);
   const [teamLoading, setTeamLoading] = useState(false);
-  const [tab, setTab] = useState('outreach');
+  const [tab, setTab] = useState('summary');
   const [teamTab, setTeamTab] = useState('logs'); // 'logs' | 'leads'
 
   const [stationInput, setStationInput] = useState('');
@@ -791,6 +799,7 @@ const DailyLog = () => {
   const [wins, setWins] = useState('');
   const [blockers, setBlockers] = useState('');
   const [notes, setNotes] = useState('');
+  const [taskNotes, setTaskNotes] = useState('');
   const summaryTimer = useRef(null);
 
   // ── fetch log (date-specific) ──────────────────────────────────────────────
@@ -803,6 +812,7 @@ const DailyLog = () => {
       setWins(r.data.log.wins || '');
       setBlockers(r.data.log.blockers || '');
       setNotes(r.data.log.notes || '');
+      setTaskNotes(r.data.log.taskNotes || '');
     } catch { toast.error('Failed to load log'); }
     finally { setIsLoading(false); }
   }, []);
@@ -844,13 +854,15 @@ const DailyLog = () => {
     if (field === 'wins') setWins(val);
     if (field === 'blockers') setBlockers(val);
     if (field === 'notes') setNotes(val);
+    if (field === 'taskNotes') setTaskNotes(val);
     clearTimeout(summaryTimer.current);
     summaryTimer.current = setTimeout(async () => {
       try {
         const payload = {
-          wins:     field === 'wins'     ? val : wins,
-          blockers: field === 'blockers' ? val : blockers,
-          notes:    field === 'notes'    ? val : notes,
+          wins:      field === 'wins'      ? val : wins,
+          blockers:  field === 'blockers'  ? val : blockers,
+          notes:     field === 'notes'     ? val : notes,
+          taskNotes: field === 'taskNotes' ? val : taskNotes,
         };
         const r = await dailyLogAPI.updateSummary(dateStr, payload);
         setLog(r.data.log);
@@ -928,7 +940,7 @@ const DailyLog = () => {
         </div>
       </div>
 
-      {/* date bar — only shown in My Log mode, hidden when on Leads tab */}
+      {/* date bar — hidden only on Leads tab */}
       {!(viewMode === 'mine' && tab === 'leads') && (
         <div className="flex items-center justify-between bg-white border border-gray-200 rounded-2xl px-4 py-3 mb-3 shadow-sm">
           <button onClick={() => changeDate(-1)} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-500 transition-colors">
@@ -983,9 +995,9 @@ const DailyLog = () => {
           {/* section tabs */}
           <div className="flex bg-gray-100 rounded-2xl p-1 mb-4">
             {[
-              { key: 'outreach', label: 'Outreach' },
-              { key: 'leads',    label: `Leads${leads.length ? ` (${leads.length})` : ''}` },
               { key: 'summary',  label: 'Summary'  },
+              { key: 'leads',    label: `Leads${leads.length ? ` (${leads.length})` : ''}` },
+              { key: 'outreach', label: 'Outreach' },
             ].map(t => (
               <TabBtn key={t.key} active={tab === t.key} onClick={() => setTab(t.key)}>{t.label}</TabBtn>
             ))}
@@ -1155,33 +1167,51 @@ const DailyLog = () => {
               {/* ── SUMMARY TAB ── */}
               {tab === 'summary' && (
                 <div className="bg-white border border-gray-200 rounded-2xl p-4 space-y-4">
+
+                  {/* Notes/Tasks — primary field */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <FileText size={14} className="text-indigo-500" />
+                      <label className="text-sm font-semibold text-gray-700">Notes / Tasks</label>
+                      <span className="text-xs text-gray-400 ml-1">(reflected in reports)</span>
+                    </div>
+                    <textarea value={taskNotes} onChange={e => handleSummaryChange('taskNotes', e.target.value)}
+                      placeholder="Key tasks done today, meetings, decisions, action items..."
+                      rows={4}
+                      className="w-full border border-indigo-200 bg-indigo-50/30 rounded-xl px-3 py-2.5 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-200 resize-none"
+                    />
+                  </div>
+
                   <div>
                     <div className="flex items-center gap-2 mb-2">
                       <Trophy size={14} className="text-green-500" />
                       <label className="text-sm font-semibold text-gray-700">Wins today</label>
                     </div>
                     <textarea value={wins} onChange={e => handleSummaryChange('wins', e.target.value)}
-                      placeholder="What went well? Any breakthroughs?" rows={3}
+                      placeholder="What went well? Any breakthroughs?" rows={2}
                       className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-200 resize-none" />
                   </div>
+
                   <div>
                     <div className="flex items-center gap-2 mb-2">
                       <AlertOctagon size={14} className="text-red-400" />
                       <label className="text-sm font-semibold text-gray-700">Blockers</label>
                     </div>
                     <textarea value={blockers} onChange={e => handleSummaryChange('blockers', e.target.value)}
-                      placeholder="What slowed you down?" rows={3}
+                      placeholder="What slowed you down?" rows={2}
                       className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-200 resize-none" />
                   </div>
+
                   <div>
                     <div className="flex items-center gap-2 mb-2">
                       <FileText size={14} className="text-gray-400" />
                       <label className="text-sm font-semibold text-gray-700">Other notes</label>
                     </div>
                     <textarea value={notes} onChange={e => handleSummaryChange('notes', e.target.value)}
-                      placeholder="Anything else for the night meet..." rows={4}
+                      placeholder="Anything else for the night meet..." rows={3}
                       className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-200 resize-none" />
                   </div>
+
                   <p className="text-xs text-gray-400 text-right">Auto-saves as you type</p>
                 </div>
               )}
