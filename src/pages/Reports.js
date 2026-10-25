@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   BarChart3, ChevronLeft, ChevronRight, AlertCircle,
-  TrendingUp, Users, Zap, Trophy, AlertOctagon, FileText,
-  Phone, Linkedin, MessageCircle, Star, GitBranch, Calendar
+  Users, Calendar, TrendingUp, FileText
 } from 'lucide-react';
 import { reportsAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -19,11 +18,10 @@ const toDateStr = (d) => {
   return `${y}-${m}-${day}`;
 };
 
-// Get Monday of the week containing a date
 const getMondayOf = (date) => {
   const d = new Date(date);
   const day = d.getDay();
-  const diff = day === 0 ? -6 : 1 - day; // adjust for Sunday
+  const diff = day === 0 ? -6 : 1 - day;
   d.setDate(d.getDate() + diff);
   return d;
 };
@@ -31,332 +29,126 @@ const getMondayOf = (date) => {
 const fmtDate = (dateStr) => {
   if (!dateStr) return '';
   const [y, m, d] = dateStr.split('-').map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return new Date(y, m - 1, d).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 };
 
-const CHANNEL_ICON = {
-  'cold-call': Phone, 'linkedin': Linkedin, 'whatsapp': MessageCircle,
-  'event': Star, 'referral': GitBranch, 'other': Zap,
-};
-const CHANNEL_LABEL = {
-  'cold-call': 'Cold Call', 'linkedin': 'LinkedIn', 'whatsapp': 'WhatsApp',
-  'event': 'Event', 'referral': 'Referral', 'other': 'Other',
-};
-const STAGE_META = {
-  'lead':         { label: 'Lead',         color: 'text-gray-500'   },
-  'conversation': { label: 'Conversation', color: 'text-blue-600'   },
-  'meeting':      { label: 'Meeting',      color: 'text-yellow-600' },
-  'proposal':     { label: 'Proposal',     color: 'text-orange-600' },
-  'client':       { label: 'Client',       color: 'text-green-600'  },
-  'lost':         { label: 'Lost',         color: 'text-red-500'    },
-};
-
-// ─── stat card ────────────────────────────────────────────────────────────────
-const StatCard = ({ label, value, color = 'text-gray-900', bg = 'bg-white' }) => (
-  <div className={`${bg} border border-gray-100 rounded-2xl py-3 px-4 text-center`}>
-    <div className={`text-2xl font-bold ${color}`}>{value}</div>
-    <div className="text-xs text-gray-400 mt-0.5">{label}</div>
-  </div>
-);
-
-// ─── day card ─────────────────────────────────────────────────────────────────
-const DayCard = ({ day, defaultOpen = false }) => {
-  const [open, setOpen] = useState(defaultOpen);
-  const hasActivity = day.outreachTotal > 0 || day.wins || day.blockers || day.notes || day.taskNotes;
-
+// ─── simple day row ───────────────────────────────────────────────────────────
+const DayRow = ({ day }) => {
+  const hasNotes = !!(day.taskNotes?.trim());
   return (
-    <div className={`border rounded-2xl overflow-hidden ${hasActivity ? 'border-gray-200' : 'border-dashed border-gray-200 opacity-60'}`}>
-      <button onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors">
-        <div className="flex items-center gap-3">
-          <div className="text-left">
-            <div className="font-semibold text-gray-900 text-sm">{day.dayName} — {fmtDate(day.date)}</div>
-            {day.station && <div className="text-xs text-gray-400">📍 {day.station}</div>}
-          </div>
-          {day.outreachTotal > 0 && (
-            <span className="bg-blue-100 text-blue-700 text-xs font-bold px-2 py-0.5 rounded-full">
-              {day.outreachTotal} outreach
-            </span>
-          )}
-          {!hasActivity && <span className="text-xs text-gray-400 italic">No activity</span>}
-        </div>
-        <span className={`text-gray-400 transition-transform inline-block ${open ? 'rotate-180' : ''}`}>▾</span>
-      </button>
-
-      {open && hasActivity && (
-        <div className="border-t border-gray-100 px-4 py-4 bg-gray-50/40 space-y-3">
-
-          {/* outreach breakdown */}
-          {day.outreachTotal > 0 && (
-            <div>
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Outreach</p>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
-                {[
-                  { label: 'Interested',     val: day.outreachByOutcome?.interested || 0,       color: 'text-green-600',  bg: 'bg-green-50'  },
-                  { label: 'Follow-up',      val: day.outreachByOutcome?.['follow-up'] || 0,    color: 'text-blue-600',   bg: 'bg-blue-50'   },
-                  { label: 'Not Interested', val: day.outreachByOutcome?.['not-interested'] || 0,color: 'text-red-500',   bg: 'bg-red-50'    },
-                  { label: 'No Response',    val: day.outreachByOutcome?.['no-response'] || 0,  color: 'text-gray-400',   bg: 'bg-gray-50'   },
-                ].map(s => <StatCard key={s.label} label={s.label} value={s.val} color={s.color} bg={s.bg} />)}
-              </div>
-
-              {/* outreach entries */}
-              <div className="space-y-1.5">
-                {day.outreachEntries.map((entry, i) => {
-                  const Icon = CHANNEL_ICON[entry.channel] || Zap;
-                  return (
-                    <div key={i} className="flex items-start gap-2 bg-white border border-gray-100 rounded-xl px-3 py-2">
-                      <Icon size={13} className="text-blue-500 mt-0.5 flex-shrink-0" />
-                      <div className="min-w-0">
-                        <span className="font-medium text-gray-800 text-xs">{entry.name}</span>
-                        <span className="text-gray-400 text-xs ml-2">{CHANNEL_LABEL[entry.channel]}</span>
-                        {entry.followUpNote && <div className="text-xs text-blue-600">↪ {entry.followUpNote}</div>}
-                        {entry.notes && <div className="text-xs text-gray-500">{entry.notes}</div>}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* wins / blockers / notes / taskNotes */}
-          {(day.taskNotes || day.wins || day.blockers || day.notes) && (
-            <div className="space-y-2">
-              {day.taskNotes && (
-                <div className="bg-indigo-50 border border-indigo-100 rounded-xl px-3 py-2.5">
-                  <div className="flex items-center gap-1.5 mb-1"><FileText size={11} className="text-indigo-500" /><span className="text-xs font-semibold text-indigo-700">Notes / Tasks</span></div>
-                  <p className="text-xs text-gray-700 whitespace-pre-wrap">{day.taskNotes}</p>
-                </div>
-              )}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {day.wins && (
-                  <div className="bg-green-50 border border-green-100 rounded-xl px-3 py-2">
-                    <div className="flex items-center gap-1.5 mb-1"><Trophy size={11} className="text-green-600" /><span className="text-xs font-semibold text-green-700">Wins</span></div>
-                    <p className="text-xs text-gray-700 whitespace-pre-wrap">{day.wins}</p>
-                  </div>
-                )}
-                {day.blockers && (
-                  <div className="bg-red-50 border border-red-100 rounded-xl px-3 py-2">
-                    <div className="flex items-center gap-1.5 mb-1"><AlertOctagon size={11} className="text-red-500" /><span className="text-xs font-semibold text-red-600">Blockers</span></div>
-                    <p className="text-xs text-gray-700 whitespace-pre-wrap">{day.blockers}</p>
-                  </div>
-                )}
-              </div>
-              {day.notes && (
-                <div className="bg-white border border-gray-200 rounded-xl px-3 py-2">
-                  <div className="flex items-center gap-1.5 mb-1"><FileText size={11} className="text-gray-400" /><span className="text-xs font-semibold text-gray-500">Other Notes</span></div>
-                  <p className="text-xs text-gray-600 whitespace-pre-wrap">{day.notes}</p>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
+    <div className={`flex gap-4 py-3.5 border-b border-gray-100 last:border-0 ${!hasNotes ? 'opacity-50' : ''}`}>
+      {/* date label */}
+      <div className="w-28 flex-shrink-0 text-xs font-semibold text-gray-500 pt-0.5">
+        {day.dayName}, {fmtDate(day.date)}
+      </div>
+      {/* notes content */}
+      <div className="flex-1 min-w-0">
+        {hasNotes ? (
+          <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{day.taskNotes}</p>
+        ) : (
+          <p className="text-xs text-gray-400 italic">No entry</p>
+        )}
+      </div>
     </div>
   );
 };
 
-// ─── weekly report view ───────────────────────────────────────────────────────
+// ─── weekly report ────────────────────────────────────────────────────────────
 const WeeklyReport = ({ report }) => {
-  const { admin, weekStart, weekEnd, days, leadsAdded, stageChanges, totals } = report;
+  const { admin, weekStart, weekEnd, days } = report;
+  const filled = days.filter(d => d.taskNotes?.trim()).length;
 
   return (
-    <div className="space-y-5">
+    <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
       {/* header */}
-      <div className="bg-white border border-gray-200 rounded-2xl px-5 py-4">
-        <div className="flex items-center gap-3 mb-1">
-          <div className="w-9 h-9 bg-gradient-to-br from-violet-500 to-purple-600 rounded-xl flex items-center justify-center">
+      <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 bg-gradient-to-br from-violet-500 to-purple-600 rounded-xl flex items-center justify-center flex-shrink-0">
             <span className="text-white text-xs font-bold">
-              {admin.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
+              {admin.name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase()}
             </span>
           </div>
           <div>
-            <div className="font-bold text-gray-900">{admin.name}</div>
+            <div className="font-bold text-gray-900 text-sm">{admin.name}</div>
             <div className="text-xs text-gray-400">{fmtDate(weekStart)} – {fmtDate(weekEnd)}</div>
           </div>
         </div>
+        <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
+          filled === 7 ? 'bg-green-100 text-green-700' :
+          filled > 0  ? 'bg-yellow-100 text-yellow-700' :
+                        'bg-gray-100 text-gray-500'
+        }`}>
+          {filled}/7 days filled
+        </span>
       </div>
-
-      {/* summary stats */}
-      <div>
-        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 px-1">Week Summary</p>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
-          <StatCard label="Total Outreach" value={totals.outreachTotal} color="text-blue-600" bg="bg-blue-50" />
-          <StatCard label="Interested"     value={totals.interested}    color="text-green-600" bg="bg-green-50" />
-          <StatCard label="Follow-ups"     value={totals.followUp}      color="text-blue-500" bg="bg-blue-50" />
-          <StatCard label="Leads Added"    value={totals.leadsAdded}    color="text-orange-600" bg="bg-orange-50" />
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-          <StatCard label="Not Interested" value={totals.notInterested}  color="text-red-500" />
-          <StatCard label="No Response"    value={totals.noResponse}     color="text-gray-400" />
-          {totals.fuTotal > 0 && (
-            <StatCard label="Follow-ups Done" value={`${totals.fuCompleted}/${totals.fuTotal}`} color="text-green-600" />
-          )}
-        </div>
+      {/* days */}
+      <div className="px-5">
+        {days.map((day, i) => <DayRow key={i} day={day} />)}
       </div>
-
-      {/* day by day */}
-      <div>
-        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 px-1">Day by Day</p>
-        <div className="space-y-2">
-          {days.map((day, i) => <DayCard key={i} day={day} />)}
-        </div>
-      </div>
-
-      {/* leads added */}
-      {leadsAdded.length > 0 && (
-        <div>
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 px-1">
-            Leads Added This Week ({leadsAdded.length})
-          </p>
-          <div className="space-y-1.5">
-            {leadsAdded.map((lead, i) => {
-              const sm = STAGE_META[lead.stage] || STAGE_META.lead;
-              return (
-                <div key={i} className="flex items-center justify-between bg-white border border-gray-100 rounded-xl px-3 py-2">
-                  <div>
-                    <span className="font-medium text-gray-800 text-sm">{lead.name}</span>
-                    {lead.company && <span className="text-gray-400 text-xs ml-2">{lead.company}</span>}
-                  </div>
-                  <span className={`text-xs font-semibold ${sm.color}`}>{sm.label}</span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* stage changes */}
-      {stageChanges.length > 0 && (
-        <div>
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 px-1">
-            Pipeline Movements ({stageChanges.length})
-          </p>
-          <div className="space-y-1.5">
-            {stageChanges.map((sc, i) => {
-              const sm = STAGE_META[sc.stage] || STAGE_META.lead;
-              return (
-                <div key={i} className="flex items-center justify-between bg-white border border-gray-100 rounded-xl px-3 py-2">
-                  <div>
-                    <span className="font-medium text-gray-800 text-sm">{sc.leadName}</span>
-                    {sc.company && <span className="text-gray-400 text-xs ml-2">{sc.company}</span>}
-                    {sc.note && <div className="text-xs text-gray-500">{sc.note}</div>}
-                  </div>
-                  <div className="text-right">
-                    <div className={`text-xs font-semibold ${sm.color}`}>→ {sm.label}</div>
-                    <div className="text-xs text-gray-400">{fmtDate(sc.date)}</div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
     </div>
   );
 };
 
-// ─── monthly report view ──────────────────────────────────────────────────────
+// ─── monthly report ───────────────────────────────────────────────────────────
 const MonthlyReport = ({ report }) => {
-  const { admin, year, month, weeks, leadsAdded, monthTotals } = report;
+  const { admin, year, month, weeks } = report;
+  const allDays = weeks.flatMap(w => w.days);
+  const filled = allDays.filter(d => d.taskNotes?.trim()).length;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       {/* header */}
-      <div className="bg-white border border-gray-200 rounded-2xl px-5 py-4">
+      <div className="bg-white border border-gray-200 rounded-2xl px-5 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl flex items-center justify-center">
+          <div className="w-9 h-9 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl flex items-center justify-center flex-shrink-0">
             <span className="text-white text-xs font-bold">
-              {admin.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
+              {admin.name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase()}
             </span>
           </div>
           <div>
-            <div className="font-bold text-gray-900">{admin.name}</div>
+            <div className="font-bold text-gray-900 text-sm">{admin.name}</div>
             <div className="text-xs text-gray-400">{MONTH_NAMES[month - 1]} {year}</div>
           </div>
         </div>
-      </div>
-
-      {/* monthly totals */}
-      <div>
-        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 px-1">Monthly Summary</p>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
-          <StatCard label="Total Outreach" value={monthTotals.outreachTotal} color="text-blue-600" bg="bg-blue-50" />
-          <StatCard label="Interested"     value={monthTotals.interested}    color="text-green-600" bg="bg-green-50" />
-          <StatCard label="Follow-ups"     value={monthTotals.followUp}      color="text-blue-500" />
-          <StatCard label="Leads Added"    value={monthTotals.leadsAdded}    color="text-orange-600" bg="bg-orange-50" />
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          <StatCard label="Not Interested" value={monthTotals.notInterested} color="text-red-500" />
-          <StatCard label="No Response"    value={monthTotals.noResponse}    color="text-gray-400" />
-        </div>
+        <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
+          filled > 20 ? 'bg-green-100 text-green-700' :
+          filled > 10 ? 'bg-yellow-100 text-yellow-700' :
+                        'bg-gray-100 text-gray-500'
+        }`}>
+          {filled}/{allDays.length} days filled
+        </span>
       </div>
 
       {/* week by week */}
-      <div>
-        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 px-1">Week by Week</p>
-        <div className="space-y-3">
-          {weeks.map((week, wi) => (
-            <div key={wi} className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
-              <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-100">
-                <span className="font-semibold text-gray-800 text-sm">
-                  Week {week.weekNumber} — {fmtDate(week.weekStart)} to {fmtDate(week.weekEnd)}
-                </span>
-                <div className="flex gap-2">
-                  <span className="bg-blue-100 text-blue-700 text-xs font-bold px-2 py-0.5 rounded-full">
-                    {week.totals.outreachTotal} outreach
-                  </span>
-                  <span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-0.5 rounded-full">
-                    {week.totals.interested} interested
-                  </span>
-                </div>
-              </div>
-              <div className="p-3 space-y-2">
-                {week.days.map((day, di) => <DayCard key={di} day={day} />)}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* leads added */}
-      {leadsAdded.length > 0 && (
-        <div>
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 px-1">
-            Leads Added This Month ({leadsAdded.length})
-          </p>
-          <div className="space-y-1.5">
-            {leadsAdded.map((lead, i) => {
-              const sm = STAGE_META[lead.stage] || STAGE_META.lead;
-              return (
-                <div key={i} className="flex items-center justify-between bg-white border border-gray-100 rounded-xl px-3 py-2">
-                  <div>
-                    <span className="font-medium text-gray-800 text-sm">{lead.name}</span>
-                    {lead.company && <span className="text-gray-400 text-xs ml-2">{lead.company}</span>}
-                  </div>
-                  <span className={`text-xs font-semibold ${sm.color}`}>{sm.label}</span>
-                </div>
-              );
-            })}
+      {weeks.map((week, wi) => (
+        <div key={wi} className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+          <div className="px-5 py-2.5 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
+            <span className="text-xs font-semibold text-gray-600">
+              Week {week.weekNumber} — {fmtDate(week.weekStart)} to {fmtDate(week.weekEnd)}
+            </span>
+            <span className="text-xs text-gray-400">
+              {week.days.filter(d => d.taskNotes?.trim()).length}/{week.days.length} filled
+            </span>
+          </div>
+          <div className="px-5">
+            {week.days.map((day, di) => <DayRow key={di} day={day} />)}
           </div>
         </div>
-      )}
+      ))}
     </div>
   );
 };
 
-// ─── main component ───────────────────────────────────────────────────────────
+// ─── main ─────────────────────────────────────────────────────────────────────
 const Reports = () => {
   const { user } = useAuth();
 
   const [admins, setAdmins] = useState([]);
   const [selectedAdminId, setSelectedAdminId] = useState('');
-  const [reportType, setReportType] = useState('weekly'); // 'weekly' | 'monthly'
+  const [reportType, setReportType] = useState('weekly');
 
-  // weekly state
   const [weekStart, setWeekStart] = useState(() => toDateStr(getMondayOf(new Date())));
 
-  // monthly state
   const today = new Date();
   const [reportYear, setReportYear] = useState(today.getFullYear());
   const [reportMonth, setReportMonth] = useState(today.getMonth() + 1);
@@ -364,7 +156,6 @@ const Reports = () => {
   const [report, setReport] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // fetch admins
   useEffect(() => {
     if (!user?.isAdmin) return;
     reportsAPI.getAdmins().then(r => {
@@ -392,7 +183,6 @@ const Reports = () => {
     }
   }, [selectedAdminId, reportType, weekStart, reportYear, reportMonth]);
 
-  // navigate week
   const changeWeek = (delta) => {
     const [y, m, d] = weekStart.split('-').map(Number);
     const newDate = new Date(y, m - 1, d + delta * 7);
@@ -400,7 +190,6 @@ const Reports = () => {
     setReport(null);
   };
 
-  // navigate month
   const changeMonth = (delta) => {
     let nm = reportMonth + delta;
     let ny = reportYear;
@@ -433,14 +222,14 @@ const Reports = () => {
         </div>
         <div>
           <h1 className="text-xl font-bold text-gray-900">Reports</h1>
-          <p className="text-xs text-gray-400">Weekly & monthly activity reports</p>
+          <p className="text-xs text-gray-400">Daily Notes / Tasks — weekly & monthly</p>
         </div>
       </div>
 
       {/* controls */}
       <div className="bg-white border border-gray-200 rounded-2xl p-4 mb-5 space-y-3 shadow-sm">
 
-        {/* report type toggle */}
+        {/* weekly / monthly */}
         <div className="flex bg-gray-100 rounded-xl p-1">
           <button onClick={() => { setReportType('weekly'); setReport(null); }}
             className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all ${reportType === 'weekly' ? 'bg-white shadow text-gray-900' : 'text-gray-500'}`}>
@@ -452,7 +241,7 @@ const Reports = () => {
           </button>
         </div>
 
-        {/* admin selector */}
+        {/* admin picker */}
         <div>
           <p className="text-xs text-gray-400 mb-1.5 font-medium">Admin</p>
           <div className="flex flex-wrap gap-2">
@@ -469,70 +258,50 @@ const Reports = () => {
           </div>
         </div>
 
-        {/* date range selector */}
+        {/* date range */}
         {reportType === 'weekly' ? (
-          <div>
-            <p className="text-xs text-gray-400 mb-1.5 font-medium">Week</p>
-            <div className="flex items-center gap-2">
-              <button onClick={() => changeWeek(-1)} className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-500">
-                <ChevronLeft size={16} />
-              </button>
-              <div className="flex-1 text-center text-sm font-semibold text-gray-800">
-                {fmtDate(weekStart)} – {fmtDate(toDateStr(new Date(
-                  new Date(weekStart.split('-').map(Number).reduce((_, v, i) =>
-                    i === 0 ? v : null) || weekStart).getTime()
-                )))}
-                {(() => {
-                  const [y, m, d] = weekStart.split('-').map(Number);
-                  const end = new Date(y, m - 1, d + 5);
-                  return ` ${fmtDate(toDateStr(end))}`;
-                })()}
-              </div>
-              <button onClick={() => changeWeek(1)} className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-500">
-                <ChevronRight size={16} />
-              </button>
-            </div>
-            {/* simpler date display */}
-            <p className="text-center text-xs text-gray-400 mt-1">
-              {weekStart} → {(() => {
+          <div className="flex items-center gap-2">
+            <button onClick={() => changeWeek(-1)} className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-500">
+              <ChevronLeft size={16} />
+            </button>
+            <div className="flex-1 text-center text-sm font-semibold text-gray-800">
+              {(() => {
                 const [y, m, d] = weekStart.split('-').map(Number);
-                const end = new Date(y, m - 1, d + 6); // Sunday
-                return toDateStr(end);
+                const end = new Date(y, m - 1, d + 6);
+                return `${fmtDate(weekStart)} – ${fmtDate(toDateStr(end))}`;
               })()}
-            </p>
+            </div>
+            <button onClick={() => changeWeek(1)} className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-500">
+              <ChevronRight size={16} />
+            </button>
           </div>
         ) : (
-          <div>
-            <p className="text-xs text-gray-400 mb-1.5 font-medium">Month</p>
-            <div className="flex items-center gap-2">
-              <button onClick={() => changeMonth(-1)} className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-500">
-                <ChevronLeft size={16} />
-              </button>
-              <div className="flex-1 text-center text-sm font-semibold text-gray-800">
-                {MONTH_NAMES[reportMonth - 1]} {reportYear}
-              </div>
-              <button onClick={() => changeMonth(1)} className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-500">
-                <ChevronRight size={16} />
-              </button>
+          <div className="flex items-center gap-2">
+            <button onClick={() => changeMonth(-1)} className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-500">
+              <ChevronLeft size={16} />
+            </button>
+            <div className="flex-1 text-center text-sm font-semibold text-gray-800">
+              {MONTH_NAMES[reportMonth - 1]} {reportYear}
             </div>
+            <button onClick={() => changeMonth(1)} className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-500">
+              <ChevronRight size={16} />
+            </button>
           </div>
         )}
 
-        {/* generate button */}
+        {/* generate */}
         <button onClick={generateReport} disabled={!selectedAdminId || isLoading}
           className="w-full flex items-center justify-center gap-2 py-3 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 disabled:opacity-50 transition-colors text-sm">
           {isLoading
             ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            : <TrendingUp size={16} />
+            : <FileText size={16} />
           }
           {isLoading ? 'Generating...' : 'Generate Report'}
         </button>
       </div>
 
-      {/* report output */}
-      {isLoading && (
-        <div className="flex justify-center py-16"><LoadingSpinner size="large" /></div>
-      )}
+      {/* output */}
+      {isLoading && <div className="flex justify-center py-16"><LoadingSpinner size="large" /></div>}
       {report && !isLoading && (
         report.type === 'weekly'
           ? <WeeklyReport report={report.data} />
