@@ -23,6 +23,7 @@ const formatDisplay = (dateStr) => {
   return new Date(y, m - 1, d).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 };
 const isToday = (dateStr) => toDateStr(new Date()) === dateStr;
+const isPastDate = (dateStr) => dateStr < toDateStr(new Date());
 const initials = (name = '') => name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
 const fmtDate = (d) => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
@@ -788,7 +789,8 @@ const DailyLog = () => {
   const [teamLogs, setTeamLogs] = useState([]);
   const [teamLoading, setTeamLoading] = useState(false);
   const [tab, setTab] = useState('summary');
-  const [teamTab, setTeamTab] = useState('logs'); // 'logs' | 'leads'
+  const [teamTab, setTeamTab] = useState('logs');
+  const locked = viewMode === 'mine' && isPastDate(dateStr); // 'logs' | 'leads'
 
   const [stationInput, setStationInput] = useState('');
   const [stationEditing, setStationEditing] = useState(false);
@@ -956,7 +958,7 @@ const DailyLog = () => {
         </div>
       )}
 
-      {/* station — only for outreach/summary */}
+      {/* station — only for outreach/summary AND not locked */}
       {viewMode === 'mine' && tab !== 'leads' && (
         <div className="flex items-center gap-2 bg-white border border-gray-100 rounded-2xl px-4 py-2.5 mb-3">
           <MapPin size={14} className="text-violet-400 flex-shrink-0" />
@@ -992,6 +994,16 @@ const DailyLog = () => {
       {/* ══════════ MY LOG ══════════ */}
       {viewMode === 'mine' && (
         <>
+          {/* locked banner for past dates */}
+          {locked && (
+            <div className="flex items-center gap-2.5 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 mb-4">
+              <span className="text-lg">🔒</span>
+              <div>
+                <p className="text-sm font-semibold text-amber-800">This date is locked</p>
+                <p className="text-xs text-amber-600">You can only log on the day itself. Past dates are read-only.</p>
+              </div>
+            </div>
+          )}
           {/* section tabs */}
           <div className="flex bg-gray-100 rounded-2xl p-1 mb-4">
             {[
@@ -1010,7 +1022,7 @@ const DailyLog = () => {
               {/* ── OUTREACH TAB ── */}
               {tab === 'outreach' && (
                 <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
-                  <form onSubmit={handleAddOutreach} className="p-4 border-b border-gray-100 space-y-3">
+                  <form onSubmit={handleAddOutreach} className={`p-4 border-b border-gray-100 space-y-3 ${locked ? 'opacity-50 pointer-events-none' : ''}`}>
                     <input type="text" placeholder="Name / Company *" value={outForm.name}
                       onChange={e => setOutForm(f => ({ ...f, name: e.target.value }))}
                       className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200" required />
@@ -1066,9 +1078,9 @@ const DailyLog = () => {
                       rows={2}
                       className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 resize-none"
                     />
-                    <button type="submit" disabled={addingOut || !outForm.name.trim()}
+                    <button type="submit" disabled={addingOut || !outForm.name.trim() || locked}
                       className="w-full flex items-center justify-center gap-2 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-colors">
-                      {addingOut ? <Spinner /> : <Plus size={15} />} Add Outreach
+                      {addingOut ? <Spinner /> : <Plus size={15} />} {locked ? 'Locked — today only' : 'Add Outreach'}
                     </button>                  </form>
                   <div className="px-4">
                     {(log?.outreach?.length || 0) > 0
@@ -1166,19 +1178,30 @@ const DailyLog = () => {
 
               {/* ── SUMMARY TAB ── */}
               {tab === 'summary' && (
-                <div className="bg-white border border-gray-200 rounded-2xl p-4 space-y-4">
+                <div className={`bg-white border border-gray-200 rounded-2xl p-4 space-y-4 ${locked ? 'opacity-70' : ''}`}>
 
                   {/* Notes/Tasks — primary field */}
                   <div>
                     <div className="flex items-center gap-2 mb-2">
                       <FileText size={14} className="text-indigo-500" />
                       <label className="text-sm font-semibold text-gray-700">Notes / Tasks</label>
-                      <span className="text-xs text-gray-400 ml-1">(reflected in reports)</span>
+                      <span className="text-xs text-gray-400 ml-1">(goes into weekly & monthly reports)</span>
                     </div>
-                    <textarea value={taskNotes} onChange={e => handleSummaryChange('taskNotes', e.target.value)}
-                      placeholder="Key tasks done today, meetings, decisions, action items..."
-                      rows={4}
-                      className="w-full border border-indigo-200 bg-indigo-50/30 rounded-xl px-3 py-2.5 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-200 resize-none"
+                    {!taskNotes.trim() && !isToday(dateStr) && (
+                      <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 mb-2">
+                        <span className="text-amber-500 text-sm">⚠️</span>
+                        <span className="text-xs text-amber-700 font-medium">
+                          This day has no notes — go back and fill in what you did or what was pending.
+                        </span>
+                      </div>
+                    )}
+                    <textarea value={taskNotes} onChange={e => !locked && handleSummaryChange('taskNotes', e.target.value)}
+                      placeholder={!isToday(dateStr)
+                        ? "This day is locked — you can only log on the day itself."
+                        : "What did you do today? Key tasks, meetings, decisions, action items..."}
+                      rows={5}
+                      readOnly={locked}
+                      className={`w-full border border-indigo-200 rounded-xl px-3 py-2.5 text-sm placeholder-gray-400 focus:outline-none resize-none ${locked ? 'bg-gray-50 cursor-not-allowed' : 'bg-indigo-50/30 focus:ring-2 focus:ring-indigo-200'}`}
                     />
                   </div>
 
@@ -1187,9 +1210,9 @@ const DailyLog = () => {
                       <Trophy size={14} className="text-green-500" />
                       <label className="text-sm font-semibold text-gray-700">Wins today</label>
                     </div>
-                    <textarea value={wins} onChange={e => handleSummaryChange('wins', e.target.value)}
-                      placeholder="What went well? Any breakthroughs?" rows={2}
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-200 resize-none" />
+                    <textarea value={wins} onChange={e => !locked && handleSummaryChange('wins', e.target.value)}
+                      placeholder="What went well? Any breakthroughs?" rows={2} readOnly={locked}
+                      className={`w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm placeholder-gray-400 focus:outline-none resize-none ${locked ? 'bg-gray-50 cursor-not-allowed' : 'focus:ring-2 focus:ring-green-200'}`} />
                   </div>
 
                   <div>
@@ -1197,9 +1220,9 @@ const DailyLog = () => {
                       <AlertOctagon size={14} className="text-red-400" />
                       <label className="text-sm font-semibold text-gray-700">Blockers</label>
                     </div>
-                    <textarea value={blockers} onChange={e => handleSummaryChange('blockers', e.target.value)}
-                      placeholder="What slowed you down?" rows={2}
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-200 resize-none" />
+                    <textarea value={blockers} onChange={e => !locked && handleSummaryChange('blockers', e.target.value)}
+                      placeholder="What slowed you down?" rows={2} readOnly={locked}
+                      className={`w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm placeholder-gray-400 focus:outline-none resize-none ${locked ? 'bg-gray-50 cursor-not-allowed' : 'focus:ring-2 focus:ring-red-200'}`} />
                   </div>
 
                   <div>
@@ -1207,12 +1230,12 @@ const DailyLog = () => {
                       <FileText size={14} className="text-gray-400" />
                       <label className="text-sm font-semibold text-gray-700">Other notes</label>
                     </div>
-                    <textarea value={notes} onChange={e => handleSummaryChange('notes', e.target.value)}
-                      placeholder="Anything else for the night meet..." rows={3}
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-200 resize-none" />
+                    <textarea value={notes} onChange={e => !locked && handleSummaryChange('notes', e.target.value)}
+                      placeholder="Anything else for the night meet..." rows={3} readOnly={locked}
+                      className={`w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm placeholder-gray-400 focus:outline-none resize-none ${locked ? 'bg-gray-50 cursor-not-allowed' : 'focus:ring-2 focus:ring-gray-200'}`} />
                   </div>
 
-                  <p className="text-xs text-gray-400 text-right">Auto-saves as you type</p>
+                  {!locked && <p className="text-xs text-gray-400 text-right">Auto-saves as you type</p>}
                 </div>
               )}
             </>
