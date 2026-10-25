@@ -123,4 +123,9 @@ export const followUpsAPI = {
   updateStatus: (data) => api.patch('/follow-ups/status', data),
 };
 
-export default api;
+// Reports API (admin only)
+export const reportsAPI = {
+  getAdmins: () => api.get('/reports/admins'),
+  getWeekly: (adminId, startDate) => api.get(`/reports/weekly/${adminId}/${startDate}`),
+  getMonthly: (adminId, year, month) => api.get(`/reports/monthly/${adminId}/${year}/${month}`),
+};

@@ -17,6 +17,7 @@ import ResetCodes from './pages/ResetCodes';
 import ForgotPassword from './pages/ForgotPassword';
 import Progress from './pages/Progress';
 import DailyLog from './pages/DailyLog';
+import Reports from './pages/Reports';
 
 function App() {
   return (
@@ -69,6 +70,7 @@ function App() {
                 <Route path="reset-codes" element={<ResetCodes />} />
                 <Route path="progress" element={<Progress />} />
                 <Route path="daily-log" element={<DailyLog />} />
+                <Route path="reports" element={<Reports />} />
               </Route>
               
               <Route path="*" element={<Navigate to="/" replace />} />

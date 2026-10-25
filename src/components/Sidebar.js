@@ -91,6 +91,17 @@ const Sidebar = ({ onClose }) => {
     });
   }
 
+  // Add Reports tab for admin users
+  if (user?.isAdmin) {
+    navItems.push({
+      to: '/reports',
+      icon: BarChart3,
+      label: 'Reports',
+      description: 'Weekly & monthly reports',
+      color: 'from-indigo-500 to-blue-600'
+    });
+  }
+
   return (
     <div className="h-screen flex flex-col overflow-hidden">
       {/* Header - Fixed */}
